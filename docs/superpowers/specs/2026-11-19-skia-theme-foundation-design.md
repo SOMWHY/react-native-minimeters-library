@@ -20,8 +20,9 @@ description is available.
   that version's React, React Native, Reanimated, and Worklets peer ranges are
   satisfied by this workspace.
 - Define a readonly `STRUCTURAL_TOKENS` object as the sole source for spacing,
-  radii, typography, hierarchy, stroke widths, and fixed status colors. Themes
-  must not contain or override structural values.
+  radii, typography, hierarchy, grid subdivisions, stroke widths, motion
+  duration, and fixed status colors. Themes must not contain or override
+  structural values.
 - Define a `VisualizationTheme` contract with a stable id/name and color roles
   for canvas/surface, grid/axis, labels, and visualization traces. Add three
   immutable dark presets: `midnight` (violet/cyan), `ice` (blue/cyan), and
@@ -30,16 +31,18 @@ description is available.
   clipping, background, common grid, measured bounds, and a typed drawing
   context. Future modules render Skia nodes as its children and read the
   context through `useDrawingContext()`. The context exposes measured width and
-  height, animated theme colors, structural tokens, and `mapX`/`mapY`
-  coordinate helpers. Modules must not create their own Canvas or hard-code
-  colors and stroke widths.
+  height, theme colors as Reanimated `SharedValue<string>` roles, structural
+  tokens, and `mapX`/`mapY` coordinate helpers. Modules must not create their
+  own Canvas or hard-code colors and stroke widths.
 - Animate theme prop changes through Reanimated at the drawing base. Only color
   values transition; layout, spacing, typography, radii, and stroke widths stay
   fixed. The library receives the selected theme as a prop and owns no theme
   selection or persistence state.
-- Keep coordinate mapping pure. Map values linearly between finite, non-empty
-  domains and viewport ranges without clamping; callers clip drawing to the
-  viewport. Reject invalid or degenerate domains explicitly.
+- Keep coordinate mapping pure. `mapLinear(value, domain, range)` maps values
+  linearly between finite domains and viewport ranges without clamping;
+  callers clip drawing to the viewport. Reject non-finite inputs and
+  zero-length domains explicitly. A zero-sized measured canvas waits without
+  drawing or throwing.
 
 ## Preview and testing
 
