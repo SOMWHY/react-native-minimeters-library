@@ -634,3 +634,77 @@ test('a drag with an unmeasured cell width does not move the item', () => {
     { col: 1, row: 1 },
   );
 });
+
+test('a sub-cell resize keeps the current spans', () => {
+  const { resizeDeltaToSpans } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    columns: 2,
+    placement: { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+    config: CONFIG,
+  };
+
+  assert.deepEqual(
+    resizeDeltaToSpans({ dx: 40, dy: 40 }, context),
+    { colSpan: 1, rowSpan: 1 },
+  );
+});
+
+test('a resize steps by whole cells and stops at the maximum span', () => {
+  const { resizeDeltaToSpans } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    columns: 4,
+    placement: { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+    config: { ...CONFIG, columns: 4, maxColSpan: 2, maxRowSpan: 2 },
+  };
+
+  assert.deepEqual(
+    resizeDeltaToSpans({ dx: 108, dy: 104 }, context),
+    { colSpan: 2, rowSpan: 2 },
+  );
+  // Well past the maximum: the span pins at max, never overshoots.
+  assert.deepEqual(
+    resizeDeltaToSpans({ dx: 5000, dy: 5000 }, context),
+    { colSpan: 2, rowSpan: 2 },
+  );
+});
+
+test('a resize cannot grow past the right edge of the grid', () => {
+  const { resizeDeltaToSpans } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    columns: 2,
+    placement: { col: 1, row: 2, colSpan: 1, rowSpan: 1 },
+    config: CONFIG,
+  };
+
+  // Only one column of room is left, so the span stays at one.
+  assert.deepEqual(
+    resizeDeltaToSpans({ dx: 216, dy: 0 }, context),
+    { colSpan: 1, rowSpan: 1 },
+  );
+});
+
+test('a resize never shrinks below the minimum span', () => {
+  const { resizeDeltaToSpans } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    columns: 4,
+    placement: { col: 0, row: 0, colSpan: 2, rowSpan: 2 },
+    config: CONFIG,
+  };
+
+  assert.deepEqual(
+    resizeDeltaToSpans({ dx: -5000, dy: -5000 }, context),
+    { colSpan: 1, rowSpan: 1 },
+  );
+});

@@ -20,8 +20,12 @@ export interface ModuleCardProps {
   readonly onHide?: () => void;
   /** Pan responders owned by the grid, spread onto the grab bar. */
   readonly dragHandlers?: GestureResponderHandlers;
+  /** Pan responders for the resize corner. */
+  readonly resizeHandlers?: GestureResponderHandlers;
   /** Transient mid-drag pixel offset; never persisted to the layout. */
   readonly offset?: { readonly dx: number; readonly dy: number };
+  /** Transient mid-resize size delta, so the corner tracks the finger. */
+  readonly sizeDelta?: { readonly dw: number; readonly dh: number };
   readonly children: ReactNode;
 }
 
@@ -48,7 +52,9 @@ export function ModuleCard({
   editing,
   rect,
   dragHandlers,
+  resizeHandlers,
   offset,
+  sizeDelta,
   children,
 }: ModuleCardProps) {
   const affordances = cardAffordances(editing);
@@ -61,8 +67,8 @@ export function ModuleCard({
         {
           left: rect.x,
           top: rect.y,
-          width: rect.width,
-          height: rect.height,
+          width: Math.max(0, rect.width + (sizeDelta?.dw ?? 0)),
+          height: Math.max(0, rect.height + (sizeDelta?.dh ?? 0)),
           backgroundColor: theme.colors.surface,
           transform: [
             { translateX: offset?.dx ?? 0 },
@@ -95,6 +101,7 @@ export function ModuleCard({
           accessibilityRole="adjustable"
           accessibilityLabel={`Resize ${label}`}
           accessibilityHint="Drag to change this module's grid size"
+          {...resizeHandlers}
         />
       ) : null}
     </View>

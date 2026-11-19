@@ -6,7 +6,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import type { VisualizationTheme } from '../theme/types';
 import { DraggableCard } from './DraggableCard';
 import { gridHeight, layoutRects } from './geometry';
-import { moveItem } from './layout';
+import { moveItem, resizeItem } from './layout';
 import type {
   DashboardItem,
   DashboardLayout,
@@ -61,6 +61,13 @@ export function DashboardGrid({
     [config, layout.items, onLayoutChange],
   );
 
+  const handleResizeEnd = useCallback(
+    (id: string, target: { readonly colSpan: number; readonly rowSpan: number }) => {
+      onLayoutChange({ items: resizeItem(layout.items, id, target, config) });
+    },
+    [config, layout.items, onLayoutChange],
+  );
+
   // Column width is the only value that needs measurement; everything else comes
   // from the metrics the host supplied.
   const cellWidth = Math.max(
@@ -90,6 +97,7 @@ export function DashboardGrid({
               metrics={metrics}
               config={config}
               onDragEnd={(target) => handleDragEnd(item.id, target)}
+              onResizeEnd={(target) => handleResizeEnd(item.id, target)}
             >
               {renderModule(item)}
             </DraggableCard>

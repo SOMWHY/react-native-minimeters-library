@@ -23,8 +23,13 @@ export { ModuleCard } from './ModuleCard';
 export type { ModuleCardProps } from './ModuleCard';
 export { canResize, cardAffordances } from './affordances';
 export type { CardAffordances } from './affordances';
-export { dragDeltaToCells } from './gestures';
-export type { CellTarget, DragContext } from './gestures';
+export { dragDeltaToCells, resizeDeltaToSpans } from './gestures';
+export type {
+  CellTarget,
+  DragContext,
+  ResizeContext,
+  SpanTarget,
+} from './gestures';
 export type {
   CellRect,
   DashboardItem,

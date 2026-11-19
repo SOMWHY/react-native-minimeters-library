@@ -211,3 +211,21 @@ export const Drag: Story = {
     },
   },
 };
+
+/**
+ * Resize demo: the corner tracks the finger in pixels, then the span snaps to
+ * whole cells through `resizeItem` on release. Limits come from the grid config,
+ * so a card stops at `maxColSpan` instead of overlapping its neighbour.
+ */
+export const Resize: Story = {
+  args: {
+    editing: true,
+    layout: {
+      items: [
+        item('spectrum', 'spectrum', 0, 0, 1, 1),
+        item('vectorscope', 'vectorscope', 1, 0, 1, 1),
+        item('waveform', 'waveform', 0, 1, 2, 1),
+      ],
+    },
+  },
+};
