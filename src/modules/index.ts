@@ -20,6 +20,13 @@ export {
 } from './oscilloscope';
 
 export {
+  SpectrumModule,
+  resolveSpectrumState,
+  type SpectrumInput,
+  type SpectrumModuleProps,
+} from './spectrum';
+
+export {
   VectorscopeModule,
   resolveVectorscopeState,
   type VectorscopeModuleProps,

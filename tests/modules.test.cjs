@@ -289,3 +289,55 @@ test('ships the vectorscope module and re-exports it from the modules barrel', (
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/vectorscope/);
 });
+
+const spectrumState = require('../dist/modules/spectrum/state');
+
+test('classifies spectrum input as waiting, invalid, or ready', () => {
+  assert.equal(spectrumState.resolveSpectrumState({}), 'waiting');
+  assert.equal(spectrumState.resolveSpectrumState({ bins: null }), 'waiting');
+  assert.equal(
+    spectrumState.resolveSpectrumState({ bins: new Float32Array(0) }),
+    'waiting',
+  );
+
+  assert.equal(
+    spectrumState.resolveSpectrumState({ bins: [Number.NaN, -30] }),
+    'invalid',
+  );
+  assert.equal(
+    spectrumState.resolveSpectrumState({
+      bins: [-30, -30],
+      dbRange: [0, -90],
+    }),
+    'invalid',
+  );
+  assert.equal(
+    spectrumState.resolveSpectrumState({
+      bins: [-30, -30],
+      dbRange: [Number.NEGATIVE_INFINITY, 0],
+    }),
+    'invalid',
+  );
+
+  assert.equal(spectrumState.resolveSpectrumState({ bins: [0, 0, 0] }), 'ready');
+  assert.equal(
+    spectrumState.resolveSpectrumState({ bins: [-90, -45, 0], dbRange: [-90, 0] }),
+    'ready',
+  );
+});
+
+test('normalizes a single bin and a degenerate window without dividing by zero', () => {
+  assert.deepEqual(Array.from(display.normalizeBins([-45], [-90, 0])), [0.5]);
+  assert.deepEqual(Array.from(display.normalizeBins([-45], [-20, -20])), [0]);
+  assert.deepEqual(
+    Array.from(display.normalizeBins(new Float32Array([0]), [-90, 0])),
+    [1],
+  );
+});
+
+test('ships the spectrum module and re-exports it from the modules barrel', () => {
+  assert.ok(existsSync(path.join(ROOT, 'dist/modules/spectrum/SpectrumModule.js')));
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/spectrum/);
+});
