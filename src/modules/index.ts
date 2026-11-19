@@ -14,6 +14,12 @@ export {
 export { resolvePcmState } from './pcm';
 
 export {
+  OscilloscopeModule,
+  resolveOscilloscopeState,
+  type OscilloscopeModuleProps,
+} from './oscilloscope';
+
+export {
   WaveformModule,
   resolveWaveformState,
   type WaveformModuleProps,

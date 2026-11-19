@@ -196,3 +196,50 @@ test('ships the waveform module and re-exports it from the modules barrel', () =
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/waveform/);
 });
+
+const oscilloscopeState = require('../dist/modules/oscilloscope/state');
+
+test('classifies oscilloscope input as waiting, invalid, or ready', () => {
+  assert.equal(oscilloscopeState.resolveOscilloscopeState(undefined), 'waiting');
+  assert.equal(oscilloscopeState.resolveOscilloscopeState(null), 'waiting');
+  assert.equal(
+    oscilloscopeState.resolveOscilloscopeState({
+      samples: [],
+      channels: 2,
+      samplesPerChannel: 0,
+    }),
+    'waiting',
+  );
+  assert.equal(oscilloscopeState.resolveOscilloscopeState(nanBlock), 'invalid');
+  assert.equal(
+    oscilloscopeState.resolveOscilloscopeState({
+      samples: [0, 0, 0],
+      channels: 2,
+      samplesPerChannel: 2,
+    }),
+    'invalid',
+  );
+  assert.equal(oscilloscopeState.resolveOscilloscopeState(stereoBlock), 'ready');
+  assert.equal(oscilloscopeState.resolveOscilloscopeState(silentBlock), 'ready');
+});
+
+test('keeps the oscilloscope trace finite and inside the amplitude domain', () => {
+  const trace = display.toTraceSamples(stereoBlock, 128);
+
+  assert.ok(trace.length <= 128);
+  assert.equal(trace.length, stereoBlock.samplesPerChannel);
+  assertAllFinite(trace, 'oscilloscope trace');
+
+  for (const value of trace) {
+    assert.ok(value >= -1 && value <= 1, `amplitude out of domain: ${value}`);
+  }
+});
+
+test('ships the oscilloscope module and re-exports it from the modules barrel', () => {
+  assert.ok(
+    existsSync(path.join(ROOT, 'dist/modules/oscilloscope/OscilloscopeModule.js')),
+  );
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/oscilloscope/);
+});
