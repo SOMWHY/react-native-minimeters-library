@@ -37,10 +37,13 @@
 - [ ] Phase 5: Host integration and responsive acceptance checks.
 
 ## Follow-ups
-- [ ] Confirm the Spectrogram `Skia.Image.MakeImage` + `Skia.Data.fromBytes` path on a device; the typings are verified but the runtime path is not.
+- [ ] Confirm on device that the seven module stories render (the Android export bundle contains all seven titles and 36 Node tests pass, but no device run yet). Spectrogram's `Skia.Image.MakeImage` + `Skia.Data.fromBytes` runtime path is the least proven piece.
 - [ ] Confirm reanimated shared values are accepted by `LinearGradient` and `Image` children on device (Spectrum gradient).
-- [ ] Host integration regression (`npm test --workspace=minimeters-mobile`) must run in the parent repo; this workspace declares only `example`.
+- [x] Host integration regression (`npm test --workspace=minimeters-mobile`) — 5 suites / 24 tests green against this branch.
 - [ ] Refresh the parent workspace lockfile (`D:\web_dev_projects\MiniMetersMobile\package-lock.json`) after this branch lands on `main`, so the host install resolves Skia and Worklets.
 
 ## Deferred
 - [ ] MiniMeters INI theme import; waiting for a real sample or authoritative format source.
+
+## Notes
+- The example `tsconfig.json` now lists `.rnstorybook/**/*.ts(x)` explicitly: TypeScript's `include` globs skip dot-prefixed directories, so the stories were never typechecked before. Fixing that surfaced a stale `SkPath.moveTo` usage in `Canvas.stories.tsx` (Skia 2.x builds paths through `Skia.PathBuilder.Make()`).
