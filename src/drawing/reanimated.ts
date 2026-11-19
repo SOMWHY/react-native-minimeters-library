@@ -18,6 +18,12 @@ declare const require: (moduleName: 'react-native-reanimated') => ReanimatedModu
 
 const reanimated = require('react-native-reanimated');
 
-export const { interpolateColor, useAnimatedReaction, useSharedValue, withTiming } = reanimated;
+export const {
+  interpolateColor,
+  useAnimatedReaction,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} = reanimated;
 
 export type { SharedValue };
