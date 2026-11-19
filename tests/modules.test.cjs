@@ -243,3 +243,49 @@ test('ships the oscilloscope module and re-exports it from the modules barrel', 
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/oscilloscope/);
 });
+
+const vectorscopeState = require('../dist/modules/vectorscope/state');
+
+test('classifies vectorscope input as waiting, invalid, or ready', () => {
+  assert.equal(vectorscopeState.resolveVectorscopeState(undefined), 'waiting');
+  assert.equal(vectorscopeState.resolveVectorscopeState(null), 'waiting');
+  assert.equal(
+    vectorscopeState.resolveVectorscopeState({
+      samples: [],
+      channels: 2,
+      samplesPerChannel: 0,
+    }),
+    'waiting',
+  );
+
+  // Mono input cannot be plotted in phase space.
+  assert.equal(
+    vectorscopeState.resolveVectorscopeState({
+      samples: [0, 0.5, -0.5],
+      channels: 1,
+      samplesPerChannel: 3,
+    }),
+    'invalid',
+  );
+  assert.equal(vectorscopeState.resolveVectorscopeState(nanBlock), 'invalid');
+  assert.equal(
+    vectorscopeState.resolveVectorscopeState({
+      samples: [0, 0, 0],
+      channels: 2,
+      samplesPerChannel: 2,
+    }),
+    'invalid',
+  );
+
+  assert.equal(vectorscopeState.resolveVectorscopeState(stereoBlock), 'ready');
+  assert.equal(vectorscopeState.resolveVectorscopeState(silentBlock), 'ready');
+});
+
+test('ships the vectorscope module and re-exports it from the modules barrel', () => {
+  assert.ok(
+    existsSync(path.join(ROOT, 'dist/modules/vectorscope/VectorscopeModule.js')),
+  );
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/vectorscope/);
+});
