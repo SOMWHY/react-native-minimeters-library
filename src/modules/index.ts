@@ -11,6 +11,14 @@ export {
   toTraceSamples,
 } from './display';
 
+export { resolvePcmState } from './pcm';
+
+export {
+  WaveformModule,
+  resolveWaveformState,
+  type WaveformModuleProps,
+} from './waveform';
+
 export type {
   EnvelopeColumns,
   ModuleBaseProps,

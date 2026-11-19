@@ -152,3 +152,47 @@ test('ships the module surface and re-exports it from the package root', () => {
   const rootEntry = readFileSync(path.join(ROOT, 'dist/index.js'), 'utf8');
   assert.match(rootEntry, /\.\/modules/);
 });
+
+const waveformState = require('../dist/modules/waveform/state');
+
+test('classifies waveform input as waiting, invalid, or ready', () => {
+  assert.equal(waveformState.resolveWaveformState(undefined), 'waiting');
+  assert.equal(waveformState.resolveWaveformState(null), 'waiting');
+  assert.equal(
+    waveformState.resolveWaveformState({
+      samples: [],
+      channels: 2,
+      samplesPerChannel: 0,
+    }),
+    'waiting',
+  );
+
+  // Declared per-channel count disagrees with the interleaved buffer.
+  assert.equal(
+    waveformState.resolveWaveformState({
+      samples: [0, 0, 0, 0],
+      channels: 2,
+      samplesPerChannel: 3,
+    }),
+    'invalid',
+  );
+  assert.equal(
+    waveformState.resolveWaveformState({
+      samples: [0, 0],
+      channels: 0,
+      samplesPerChannel: 1,
+    }),
+    'invalid',
+  );
+  assert.equal(waveformState.resolveWaveformState(nanBlock), 'invalid');
+
+  assert.equal(waveformState.resolveWaveformState(stereoBlock), 'ready');
+  assert.equal(waveformState.resolveWaveformState(silentBlock), 'ready');
+});
+
+test('ships the waveform module and re-exports it from the modules barrel', () => {
+  assert.ok(existsSync(path.join(ROOT, 'dist/modules/waveform/WaveformModule.js')));
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/waveform/);
+});
