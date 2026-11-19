@@ -6,6 +6,7 @@
 - [x] Phase 1 delivered: workspace package, verified data contract, and isolated Expo example.
 - [x] On-device Storybook integrated into the isolated Expo example with a local-fixture smoke story.
 - [x] Phase 2 delivered: Skia drawing base, structural tokens, and three built-in themes.
+- [x] Phase 3 delivered: seven visualization modules with state classifiers, display helpers, and Storybook stories.
 
 ## Phase 1 — Foundation and data contract
 - [x] npm workspace and `@minimetermobile/ui` package scaffold.
@@ -20,12 +21,25 @@
 - [x] `useDrawingContext()` with `width`, `height`, `theme`, `colors`, `tokens`, `mapX`, and `mapY`.
 - [x] Contract tests, package smoke check, and on-device Storybook canvas preview.
 
+## Phase 3 — Visualization modules
+- [x] Shared `ModuleSurface` shell, `ModuleStatus` states (`ready`/`waiting`/`invalid`), and pure display helpers.
+- [x] `WaveformModule`: min/max envelope band with zero axis.
+- [x] `OscilloscopeModule`: decimated polyline over an opaque surface.
+- [x] `VectorscopeModule`: goniometer dots with diagonal and mid-side axes.
+- [x] `SpectrumModule`: normalized dB area with `low`→`high` gradient.
+- [x] `VuModule`: two gradient bars with optional peak ticks.
+- [x] `LoudnessModule`: peak/RMS/LUFS meters with numeric readouts.
+- [x] `SpectrogramModule`: pure RGBA rasterizer plus `Skia.Image` history image.
+- [x] Storybook stories (`Ready`/`Waiting`/`Invalid` + theme select) for all seven modules.
+
 ## Remaining phases
-- [ ] Phase 3: Spectrum, vectorscope, waveform, loudness, oscilloscope, spectrogram, and VU components.
 - [ ] Phase 4: Pure layout functions and editable dashboard interactions.
 - [ ] Phase 5: Host integration and responsive acceptance checks.
 
 ## Follow-ups
+- [ ] Confirm the Spectrogram `Skia.Image.MakeImage` + `Skia.Data.fromBytes` path on a device; the typings are verified but the runtime path is not.
+- [ ] Confirm reanimated shared values are accepted by `LinearGradient` and `Image` children on device (Spectrum gradient).
+- [ ] Host integration regression (`npm test --workspace=minimeters-mobile`) must run in the parent repo; this workspace declares only `example`.
 - [ ] Refresh the parent workspace lockfile (`D:\web_dev_projects\MiniMetersMobile\package-lock.json`) after this branch lands on `main`, so the host install resolves Skia and Worklets.
 
 ## Deferred

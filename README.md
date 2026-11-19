@@ -4,8 +4,9 @@ Props-driven React Native rendering components for MiniMeters Mobile.
 
 This package is the UI layer only. It does not open a WebSocket, parse audio
 protocol frames, calculate audio metrics, manage routes, or persist dashboard
-state. Visualization modules (spectrum, vectorscope, waveform, ...) arrive in
-later phases; the current release ships the rendering foundation they will use.
+state. It renders the visualization modules (waveform, oscilloscope,
+vectorscope, spectrum, VU, loudness, spectrogram) and the Skia foundation they
+share; the host application remains the owner of audio analysis.
 
 ## Visual direction
 
@@ -78,6 +79,66 @@ Rules for module authors:
   a degenerate domain throws `RangeError`.
 
 Pure helpers `mapLinear` and `isCanvasReady` are exported for testing.
+
+## Visualization modules
+
+Seven modules ship in this release. Each one is a props-driven surface: the host
+application owns decoding, analysis, and history, and hands the module
+*display-ready* values.
+
+| Module | Props | Draws |
+| --- | --- | --- |
+| `WaveformModule` | `block`, `channel`, `columns` | Filled min/max envelope band plus the zero axis |
+| `OscilloscopeModule` | `block`, `channel`, `points` | Single decimated polyline over an opaque surface |
+| `VectorscopeModule` | `block`, `points` | Projected stereo dots with diagonal and mid-side axes |
+| `SpectrumModule` | `bins`, `dbRange` | Filled area under the normalized dB curve, `low`→`high` gradient |
+| `VuModule` | `data: { left, right, leftPeak?, rightPeak? }` | Two bars on a gradient track with optional peak ticks |
+| `LoudnessModule` | `data: { peak, rms, lufs }`, `dbRange` | Three horizontal dB meters with numeric readouts |
+| `SpectrogramModule` | `rows`, `maxRows` | Scrolling RGBA history image, newest rows kept |
+
+Every module also accepts `theme`, `height`, `label`, and `style`.
+
+```tsx
+import { WaveformModule, BUILT_IN_THEMES } from '@minimetermobile/ui';
+
+<WaveformModule
+  theme={BUILT_IN_THEMES.midnight}
+  block={{ samples, channels: 2, samplesPerChannel: frames }}
+  height={160}
+/>;
+```
+
+### Prepared-data boundary
+
+The library **displays**; it does not analyze. It never decodes the wire format
+and never computes FFT, peaks, RMS, or LUFS. Concretely:
+
+- PCM modules take an interleaved `PcmBlock` (`{ samples, channels,
+  samplesPerChannel }`). Decimation to columns/points happens here because it is
+  a display transform, not an audio metric.
+- `SpectrumModule` takes dB magnitude bins the host already computed.
+- `SpectrogramModule` takes normalized rows (`0..1`, oldest first) the host
+  already computed.
+- `VuModule` takes normalized `0..1` levels; `LoudnessModule` takes dB values.
+
+See `docs/data-contract.md` for the authoritative boundary.
+
+### Module states
+
+Every module classifies its input before drawing and never invents data:
+
+- `ready` — the input is present, finite, and structurally consistent.
+- `waiting` — the input is absent, `null`, or empty. The surface shows
+  `WAITING FOR DATA`.
+- `invalid` — the input is present but non-finite or inconsistent (a mismatched
+  `samplesPerChannel`, a mono block handed to the vectorscope, an inverted dB
+  window, ragged spectrogram rows). The surface shows `INVALID DATA`.
+
+Out-of-range values that are still meaningful are clamped rather than rejected:
+VU levels above `1` clamp to full scale, and dB values outside `dbRange` clamp to
+the meter ends. `ModuleSurface` renders the shared shell (host view, single
+`VisualizationCanvas`, and a React Native label/readout overlay), so module text
+stays in React Native and no Skia font asset is bundled.
 
 ## Peer dependencies
 
