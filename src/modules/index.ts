@@ -33,6 +33,13 @@ export {
 } from './vectorscope';
 
 export {
+  VuModule,
+  resolveVuState,
+  type VuLevels,
+  type VuModuleProps,
+} from './vu';
+
+export {
   WaveformModule,
   resolveWaveformState,
   type WaveformModuleProps,
