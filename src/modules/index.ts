@@ -1,0 +1,20 @@
+export { ModuleSurface } from './ModuleSurface';
+export type { ModuleSurfaceProps } from './ModuleSurface';
+
+export {
+  DEFAULT_DB_RANGE,
+  clampUnit,
+  normalizeBins,
+  toEnvelopeColumns,
+  toMeterScale,
+  toStereoPoints,
+  toTraceSamples,
+} from './display';
+
+export type {
+  EnvelopeColumns,
+  ModuleBaseProps,
+  ModuleStatus,
+  PcmBlock,
+  StereoPoint,
+} from './types';
