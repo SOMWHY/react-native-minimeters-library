@@ -202,10 +202,16 @@ module moving into it, never by growing a neighbour.
 
 `findSlot` scans rows top→bottom and columns left→right for the first rectangle
 of the requested span that does not overlap any visible item and stays inside
-`columns`. `autoPlace` gives every visible item without a valid slot the result
-of `findSlot` in array order, then compacts. If `findSlot` returns `null` (the
-grid is full at that width), the item is placed in a fresh row below every
-existing item at column `0` — the grid grows, it never drops an item.
+`columns`. It searches **only rows that already contain something**: an empty
+layout, or a layout with no suitable hole, returns `null` rather than silently
+growing. Growth is the caller's decision, which keeps "fill a hole" and "add a
+row" separately testable.
+
+`autoPlace` keeps every visible item whose current placement is still valid, and
+resolves the rest through `findSlot` in array order. When `findSlot` returns
+`null`, the item goes to a fresh row below every existing item at column `0`, with
+its span clamped to the column count — the grid grows downward and no module is
+ever dropped. The result is then compacted, so growth leaves no hole.
 
 ## 5. Rendering
 
