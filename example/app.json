@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "MiniMeters UI Example",
+    "slug": "minimeters-ui-example",
+    "version": "1.0.0",
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
+  }
+}
