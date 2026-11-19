@@ -1,4 +1,3 @@
-export * from './drawing/canvas-size';
-export * from './drawing/coordinates';
+export * from './drawing';
 export * from './theme';
 export * from './components';

@@ -1,9 +1,21 @@
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
 const { test } = require('node:test');
 
-const { BUILT_IN_THEMES, STRUCTURAL_TOKENS } = require('../dist');
+// The package root also exports React Native and Skia components, so it can only
+// be loaded by Metro. These contract tests load the pure sub-barrels directly and
+// assert that the root barrel still re-exports them.
+const { BUILT_IN_THEMES, STRUCTURAL_TOKENS } = require('../dist/theme');
 const { isCanvasReady } = require('../dist/drawing/canvas-size');
 const { mapLinear } = require('../dist/drawing/coordinates');
+
+test('package root re-exports the pure theme and drawing barrel', () => {
+  const rootEntry = readFileSync(path.join(__dirname, '../dist/index.js'), 'utf8');
+
+  assert.match(rootEntry, /\.\/theme/);
+  assert.match(rootEntry, /\.\/drawing/);
+});
 
 test('maps endpoints, interior values, and reversed axes without clamping', () => {
   assert.equal(mapLinear(0, [0, 10], [0, 100]), 0);
