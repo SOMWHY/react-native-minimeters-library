@@ -255,6 +255,18 @@ export function resetLayout(
   );
 }
 
+/**
+ * The hidden modules, in layout order.
+ *
+ * The tray lists exactly this, so the host never has to filter twice and the two
+ * views cannot disagree about what is hidden.
+ */
+export function hiddenItems(
+  items: readonly DashboardItem[],
+): DashboardItem[] {
+  return items.filter((item) => !item.visible);
+}
+
 /** Whether a placement is valid in the given grid without overlapping `others`. */
 export function placementIsFree(
   others: readonly DashboardItem[],

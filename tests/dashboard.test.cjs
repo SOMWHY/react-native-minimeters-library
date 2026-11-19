@@ -708,3 +708,55 @@ test('a resize never shrinks below the minimum span', () => {
     { colSpan: 1, rowSpan: 1 },
   );
 });
+
+test('the tray lists exactly the hidden modules, in layout order', () => {
+  const { hiddenItems } = require('../dist/dashboard/layout');
+  const items = [
+    item('a', 0, 0, 1, 1),
+    item('b', 0, 1, 1, 1, false),
+    item('c', 1, 1, 1, 1, false),
+  ];
+
+  assert.deepEqual(
+    hiddenItems(items).map((entry) => entry.id),
+    ['b', 'c'],
+  );
+  assert.deepEqual(hiddenItems([]), []);
+});
+
+test('hiding then restoring keeps the layout overlap-free and unchanged in size', () => {
+  const { hiddenItems } = require('../dist/dashboard/layout');
+  const items = [
+    item('a', 0, 0, 1, 1),
+    item('b', 1, 0, 1, 1),
+    item('c', 0, 1, 2, 1),
+  ];
+
+  const hidden = mutate.setVisibility(items, 'b', false, CONFIG);
+  assert.deepEqual(
+    hiddenItems(hidden).map((entry) => entry.id),
+    ['b'],
+  );
+
+  const restored = mutate.setVisibility(hidden, 'b', true, CONFIG);
+
+  assert.equal(restored.length, 3);
+  assert.ok(restored.every((entry) => entry.visible));
+  assertNoOverlap(restored, 'restored');
+  assert.deepEqual(
+    restored.map((entry) => entry.id).sort(),
+    ['a', 'b', 'c'],
+  );
+});
+
+test('the tray renders nothing when no module is hidden', () => {
+  const tray = require('node:fs').readFileSync(
+    path.join(ROOT, 'dist', 'dashboard', 'ModuleTray.js'),
+    'utf8',
+  );
+
+  // An empty tray returns null before building any view.
+  assert.match(tray, /hidden\.length === 0/);
+  assert.match(tray, /accessibilityLabel/);
+  assert.match(tray, /onRestore/);
+});

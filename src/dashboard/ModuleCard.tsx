@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { GestureResponderHandlers } from 'react-native';
 import type { ReactNode } from 'react';
 
@@ -51,6 +51,7 @@ export function ModuleCard({
   theme,
   editing,
   rect,
+  onHide,
   dragHandlers,
   resizeHandlers,
   offset,
@@ -84,6 +85,19 @@ export function ModuleCard({
       </View>
 
       <View style={styles.body}>{children}</View>
+
+      {affordances.hideable && onHide !== undefined ? (
+        <Pressable
+          onPress={onHide}
+          style={styles.hideButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Hide ${label}`}
+        >
+          <Text style={[styles.hideLabel, { color: theme.colors.textMuted }]}>
+            HIDE
+          </Text>
+        </Pressable>
+      ) : null}
 
       {affordances.draggable ? (
         <View
@@ -140,6 +154,20 @@ const styles = StyleSheet.create({
     height: HANDLE,
     borderBottomWidth: STRUCTURAL_TOKENS.strokeWidth.hairline,
     opacity: 0.6,
+  },
+  hideButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    paddingHorizontal: STRUCTURAL_TOKENS.spacing.sm,
+    paddingVertical: STRUCTURAL_TOKENS.spacing.xs,
+    zIndex: STRUCTURAL_TOKENS.hierarchy.overlay,
+  },
+  hideLabel: {
+    fontFamily: STRUCTURAL_TOKENS.typography.fontFamily,
+    fontSize: STRUCTURAL_TOKENS.typography.micro,
+    fontWeight: STRUCTURAL_TOKENS.typography.fontWeight.medium,
+    letterSpacing: 0.5,
   },
   resizeHandle: {
     position: 'absolute',

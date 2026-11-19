@@ -4,12 +4,14 @@ import {
   DashboardGrid,
   GRID_PRESETS,
   LoudnessModule,
+  ModuleTray,
   OscilloscopeModule,
   SpectrogramModule,
   SpectrumModule,
   VectorscopeModule,
   VuModule,
   WaveformModule,
+  setVisibility,
   type DashboardItem,
   type DashboardLayout,
   type LoudnessValues,
@@ -135,12 +137,20 @@ function DashboardPreview({
   theme,
   layout,
   editing,
+  tray,
 }: {
   theme: VisualizationTheme;
   layout: DashboardLayout;
   editing: boolean;
+  tray?: boolean;
 }) {
   const [current, setCurrent] = useState(layout);
+
+  const restore = (id: string) => {
+    setCurrent({
+      items: setVisibility(current.items, id, true, DEFAULT_GRID_CONFIG),
+    });
+  };
 
   return (
     <View style={{ backgroundColor: '#02030A', padding: 8, flex: 1 }}>
@@ -153,6 +163,13 @@ function DashboardPreview({
         renderModule={renderModule(theme)}
         onLayoutChange={setCurrent}
       />
+      {tray === true ? (
+        <ModuleTray
+          hidden={current.items.filter((entry) => !entry.visible)}
+          theme={theme}
+          onRestore={restore}
+        />
+      ) : null}
     </View>
   );
 }
@@ -168,11 +185,13 @@ const meta = {
     },
     layout: { control: false },
     editing: { control: 'boolean' },
+    tray: { control: 'boolean' },
   },
   args: {
     theme: BUILT_IN_THEMES.midnight,
     layout: stableLayout,
     editing: false,
+    tray: false,
   },
 } satisfies Meta<typeof DashboardPreview>;
 
@@ -225,6 +244,36 @@ export const Resize: Story = {
         item('spectrum', 'spectrum', 0, 0, 1, 1),
         item('vectorscope', 'vectorscope', 1, 0, 1, 1),
         item('waveform', 'waveform', 0, 1, 2, 1),
+      ],
+    },
+  },
+};
+
+/** The tray lists whatever is hidden; restoring routes through `setVisibility`. */
+export const HiddenTray: Story = {
+  args: {
+    editing: true,
+    tray: true,
+    layout: {
+      items: [
+        item('waveform', 'waveform', 0, 0, 2, 1),
+        { ...item('vu', 'vu', 0, 1, 1, 1), visible: false },
+        { ...item('loudness', 'loudness', 1, 1, 1, 1), visible: false },
+      ],
+    },
+  },
+};
+
+/** Restore puts the module in the first free hole, then the grid compacts. */
+export const Restored: Story = {
+  args: {
+    editing: true,
+    tray: true,
+    layout: {
+      items: [
+        item('waveform', 'waveform', 0, 0, 2, 1),
+        item('vu', 'vu', 0, 1, 1, 1),
+        item('loudness', 'loudness', 1, 1, 1, 1),
       ],
     },
   },

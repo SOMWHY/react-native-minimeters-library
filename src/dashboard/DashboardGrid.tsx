@@ -6,7 +6,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import type { VisualizationTheme } from '../theme/types';
 import { DraggableCard } from './DraggableCard';
 import { gridHeight, layoutRects } from './geometry';
-import { moveItem, resizeItem } from './layout';
+import { moveItem, resizeItem, setVisibility } from './layout';
 import type {
   DashboardItem,
   DashboardLayout,
@@ -61,6 +61,13 @@ export function DashboardGrid({
     [config, layout.items, onLayoutChange],
   );
 
+  const handleHide = useCallback(
+    (id: string) => {
+      onLayoutChange({ items: setVisibility(layout.items, id, false, config) });
+    },
+    [config, layout.items, onLayoutChange],
+  );
+
   const handleResizeEnd = useCallback(
     (id: string, target: { readonly colSpan: number; readonly rowSpan: number }) => {
       onLayoutChange({ items: resizeItem(layout.items, id, target, config) });
@@ -98,6 +105,7 @@ export function DashboardGrid({
               config={config}
               onDragEnd={(target) => handleDragEnd(item.id, target)}
               onResizeEnd={(target) => handleResizeEnd(item.id, target)}
+              onHide={() => handleHide(item.id)}
             >
               {renderModule(item)}
             </DraggableCard>

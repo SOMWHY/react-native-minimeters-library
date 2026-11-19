@@ -10,6 +10,7 @@ export {
   compact,
   findSlot,
   fitsInColumns,
+  hiddenItems,
   moveItem,
   normalizeLayout,
   rectsOverlap,
@@ -20,6 +21,8 @@ export {
 export { DashboardGrid } from './DashboardGrid';
 export type { DashboardGridProps } from './DashboardGrid';
 export { ModuleCard } from './ModuleCard';
+export { ModuleTray } from './ModuleTray';
+export type { ModuleTrayProps } from './ModuleTray';
 export type { ModuleCardProps } from './ModuleCard';
 export { canResize, cardAffordances } from './affordances';
 export type { CardAffordances } from './affordances';

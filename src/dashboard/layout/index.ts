@@ -6,6 +6,7 @@ export {
 export { compact } from './compact';
 export { autoPlace, findSlot } from './placement';
 export {
+  hiddenItems,
   moveItem,
   normalizeLayout,
   resetLayout,

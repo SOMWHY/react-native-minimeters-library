@@ -25,6 +25,8 @@ export interface DraggableCardProps {
   readonly onDragEnd: (target: CellTarget) => void;
   /** Called once, on release, with the spans the card should settle into. */
   readonly onResizeEnd: (target: SpanTarget) => void;
+  /** Called when the host should hide the module (edit mode only). */
+  readonly onHide: () => void;
   readonly children: ReactNode;
 }
 
@@ -52,6 +54,7 @@ export function DraggableCard({
   config,
   onDragEnd,
   onResizeEnd,
+  onHide,
   children,
 }: DraggableCardProps) {
   const [offset, setOffset] = useState(NO_OFFSET);
@@ -160,6 +163,7 @@ export function DraggableCard({
       theme={theme}
       editing={editing}
       rect={rect}
+      onHide={onHide}
       dragHandlers={dragResponder?.panHandlers}
       resizeHandlers={resizeResponder?.panHandlers}
       offset={offset}
