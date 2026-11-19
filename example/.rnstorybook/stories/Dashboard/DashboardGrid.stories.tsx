@@ -1,0 +1,184 @@
+import {
+  BUILT_IN_THEMES,
+  DEFAULT_GRID_CONFIG,
+  DashboardGrid,
+  GRID_PRESETS,
+  LoudnessModule,
+  OscilloscopeModule,
+  SpectrogramModule,
+  SpectrumModule,
+  VectorscopeModule,
+  VuModule,
+  WaveformModule,
+  type DashboardItem,
+  type DashboardLayout,
+  type LoudnessValues,
+  type PcmBlock,
+  type VisualizationTheme,
+  type VuLevels,
+} from '@minimetermobile/ui';
+import type { Meta, StoryObj } from '@storybook/react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
+
+import { spectrogramRows } from '../../../fixtures/spectrogram-rows';
+import { spectrumBins, spectrumDbRange } from '../../../fixtures/spectrum-bins';
+
+const FRAME_SIZE = 256;
+
+/** One shared stereo frame keeps the seven previews visually consistent. */
+function makeStereoFrame(): PcmBlock {
+  const samples = new Float32Array(FRAME_SIZE * 2);
+
+  for (let index = 0; index < FRAME_SIZE; index += 1) {
+    const phase = (index / FRAME_SIZE) * Math.PI * 6;
+    const left = Math.sin(phase) * 0.8;
+
+    samples[index * 2] = left;
+    samples[index * 2 + 1] = Math.sin(phase + 0.4) * 0.55;
+  }
+
+  return { samples, channels: 2, samplesPerChannel: FRAME_SIZE };
+}
+
+const stereoFrame = makeStereoFrame();
+
+const vuLevels: VuLevels = {
+  left: 0.72,
+  right: 0.55,
+  leftPeak: 0.85,
+  rightPeak: 0.68,
+};
+
+const loudnessValues: LoudnessValues = {
+  peak: -3.4,
+  rms: -18.7,
+  lufs: -14.2,
+};
+
+/** Every module once, in the order `overview.md` lists them. */
+const stableLayout: DashboardLayout = {
+  items: [
+    item('waveform', 'waveform', 0, 0, 2, 2),
+    item('oscilloscope', 'oscilloscope', 0, 2, 1, 1),
+    item('vectorscope', 'vectorscope', 1, 2, 1, 1),
+    item('spectrum', 'spectrum', 0, 3, 2, 2),
+    item('vu', 'vu', 0, 5, 1, 1),
+    item('loudness', 'loudness', 1, 5, 1, 1),
+    item('spectrogram', 'spectrogram', 0, 6, 2, 2),
+  ],
+};
+
+function item(
+  id: string,
+  kind: DashboardItem['kind'],
+  col: number,
+  row: number,
+  colSpan: number,
+  rowSpan: number,
+): DashboardItem {
+  return {
+    id,
+    kind,
+    visible: true,
+    label: kind,
+    placement: { col, row, colSpan, rowSpan },
+  };
+}
+
+/** The host owns data injection; the grid only asks for a body per item. */
+function renderModule(theme: VisualizationTheme) {
+  return (dashboardItem: DashboardItem) => {
+    switch (dashboardItem.kind) {
+      case 'waveform':
+        return <WaveformModule theme={theme} block={stereoFrame} height={150} />;
+      case 'oscilloscope':
+        return <OscilloscopeModule theme={theme} block={stereoFrame} height={96} />;
+      case 'vectorscope':
+        return <VectorscopeModule theme={theme} block={stereoFrame} height={96} />;
+      case 'spectrum':
+        return (
+          <SpectrumModule
+            theme={theme}
+            bins={spectrumBins}
+            dbRange={spectrumDbRange}
+            height={150}
+          />
+        );
+      case 'vu':
+        return <VuModule theme={theme} data={vuLevels} height={96} />;
+      case 'loudness':
+        return (
+          <LoudnessModule
+            theme={theme}
+            data={loudnessValues}
+            height={96}
+            dbRange={[-60, 0]}
+          />
+        );
+      case 'spectrogram':
+        return (
+          <SpectrogramModule
+            theme={theme}
+            rows={spectrogramRows}
+            maxRows={64}
+            height={150}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+}
+
+function DashboardPreview({
+  theme,
+  layout,
+  editing,
+}: {
+  theme: VisualizationTheme;
+  layout: DashboardLayout;
+  editing: boolean;
+}) {
+  const [current, setCurrent] = useState(layout);
+
+  return (
+    <View style={{ backgroundColor: '#02030A', padding: 8, flex: 1 }}>
+      <DashboardGrid
+        layout={current}
+        theme={theme}
+        config={DEFAULT_GRID_CONFIG}
+        metrics={GRID_PRESETS.phone}
+        editing={editing}
+        renderModule={renderModule(theme)}
+        onLayoutChange={setCurrent}
+      />
+    </View>
+  );
+}
+
+const meta = {
+  title: 'Dashboard/Grid',
+  component: DashboardPreview,
+  argTypes: {
+    theme: {
+      control: 'select',
+      options: ['midnight', 'ice', 'ember'],
+      mapping: BUILT_IN_THEMES,
+    },
+    layout: { control: false },
+    editing: { control: 'boolean' },
+  },
+  args: {
+    theme: BUILT_IN_THEMES.midnight,
+    layout: stableLayout,
+    editing: false,
+  },
+} satisfies Meta<typeof DashboardPreview>;
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+/** Seven modules on a two-column phone grid — the layout the host ships. */
+export const Stable: Story = {};

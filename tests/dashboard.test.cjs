@@ -455,3 +455,62 @@ test('reset shows every module and compacts the grid', () => {
     rowSpan: 1,
   });
 });
+
+test('lays out all seven modules on a two-column phone grid', () => {
+  const metrics = geometry.GRID_PRESETS.phone;
+  const cellWidth = 120;
+  const items = [
+    item('waveform', 0, 0, 2, 1),
+    item('oscilloscope', 0, 1, 1, 1),
+    item('vectorscope', 1, 1, 1, 1),
+    item('spectrum', 0, 2, 2, 1),
+    item('vu', 0, 3, 1, 1),
+    item('loudness', 1, 3, 1, 1),
+    item('spectrogram', 0, 4, 2, 1),
+  ];
+
+  const placed = geometry.layoutRects(items, metrics, cellWidth);
+
+  assert.equal(placed.length, 7);
+  assert.deepEqual(placed[0].rect, {
+    x: 12,
+    y: 12,
+    width: cellWidth * 2 + 8,
+    height: 96,
+  });
+  assert.deepEqual(placed[3].rect, {
+    x: 12,
+    y: 12 + 2 * (96 + 8),
+    width: cellWidth * 2 + 8,
+    height: 96,
+  });
+  assert.deepEqual(placed[6].rect, {
+    x: 12,
+    y: 12 + 4 * (96 + 8),
+    width: cellWidth * 2 + 8,
+    height: 96,
+  });
+  assert.equal(geometry.gridHeight(items, metrics), 24 + 5 * 96 + 4 * 8);
+});
+
+test('the container height ignores hidden modules', () => {
+  const metrics = geometry.GRID_PRESETS.phone;
+  const items = [item('a', 0, 0, 1, 1), item('b', 0, 6, 1, 1, false)];
+
+  assert.equal(geometry.gridHeight(items, metrics), 24 + 96);
+});
+
+test('the package root re-exports the dashboard surface', () => {
+  const root = require('node:fs').readFileSync(
+    path.join(ROOT, 'dist', 'index.js'),
+    'utf8',
+  );
+  const dashboard = require('node:fs').readFileSync(
+    path.join(ROOT, 'dist', 'dashboard', 'index.js'),
+    'utf8',
+  );
+
+  assert.match(root, /\.\/dashboard/);
+  assert.match(dashboard, /layoutRects/);
+  assert.match(dashboard, /DashboardGrid/);
+});
