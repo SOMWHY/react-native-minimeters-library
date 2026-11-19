@@ -251,3 +251,207 @@ test('gravity fill leaves hidden items exactly where they were', () => {
     rowSpan: 1,
   });
 });
+
+const mutate = require('../dist/dashboard/layout/mutate');
+
+function assertNoOverlap(items, label) {
+  const visible = items.filter((entry) => entry.visible);
+
+  for (let a = 0; a < visible.length; a += 1) {
+    for (let b = a + 1; b < visible.length; b += 1) {
+      assert.equal(
+        overlap.rectsOverlap(visible[a].placement, visible[b].placement),
+        false,
+        `${label}: ${visible[a].id} overlaps ${visible[b].id}`,
+      );
+    }
+  }
+}
+
+function placementOf(items, id) {
+  return items.find((entry) => entry.id === id).placement;
+}
+
+test('a drag places the moved item at the target cell', () => {
+  const items = [
+    item('a', 0, 0, 1, 1),
+    item('b', 1, 0, 1, 1),
+    item('c', 0, 1, 1, 1),
+  ];
+
+  const moved = mutate.moveItem(items, 'c', { col: 1, row: 0 }, CONFIG);
+
+  assert.deepEqual(placementOf(moved, 'c'), {
+    col: 1,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assert.deepEqual(ids(moved), ['a', 'b', 'c']);
+  assertNoOverlap(moved, 'moveItem');
+});
+
+test('a drag displaces the occupant instead of swapping shapes', () => {
+  const items = [item('small', 0, 0, 1, 1), item('big', 1, 0, 1, 2)];
+
+  const moved = mutate.moveItem(items, 'big', { col: 0, row: 0 }, CONFIG);
+
+  // The 1x2 keeps its span and simply lands lower; shapes never exchange.
+  assert.deepEqual(placementOf(moved, 'big'), {
+    col: 0,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 2,
+  });
+  assert.equal(placementOf(moved, 'small').rowSpan, 1);
+  assert.equal(placementOf(moved, 'small').col, 1);
+  assertNoOverlap(moved, 'displacement');
+});
+
+test('a drag clamps its target inside the grid', () => {
+  // Two modules, so the clamped column is observable: with gravity fill a lone
+  // module would always compact back to column 0.
+  const items = [item('a', 0, 0, 1, 1), item('b', 0, 1, 1, 1)];
+
+  const moved = mutate.moveItem(items, 'b', { col: 9, row: -3 }, CONFIG);
+
+  assert.deepEqual(placementOf(moved, 'b'), {
+    col: 1,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assert.deepEqual(placementOf(moved, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assertNoOverlap(moved, 'clamped drag');
+});
+
+test('a resize clamps spans to the configured limits and the column count', () => {
+  const items = [item('a', 0, 0, 1, 1)];
+
+  const grown = mutate.resizeItem(items, 'a', { colSpan: 9, rowSpan: 9 }, CONFIG);
+  assert.deepEqual(placementOf(grown, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 2,
+    rowSpan: 4,
+  });
+
+  const shrunk = mutate.resizeItem(
+    items,
+    'a',
+    { colSpan: 0, rowSpan: 0 },
+    CONFIG,
+  );
+  assert.deepEqual(placementOf(shrunk, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+});
+
+test('a resize pushes displaced neighbours down and stays overlap-free', () => {
+  const items = [item('a', 0, 0, 1, 1), item('b', 1, 0, 1, 1)];
+
+  const resized = mutate.resizeItem(items, 'a', { colSpan: 2, rowSpan: 1 }, CONFIG);
+
+  assert.deepEqual(placementOf(resized, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 2,
+    rowSpan: 1,
+  });
+  assert.equal(placementOf(resized, 'b').row, 1);
+  assertNoOverlap(resized, 'resize');
+});
+
+test('hiding keeps the item and its placement, and compacts the rest', () => {
+  const items = [
+    item('a', 0, 0, 1, 1),
+    item('b', 1, 0, 1, 1),
+    item('c', 0, 1, 1, 1),
+  ];
+
+  const hidden = mutate.setVisibility(items, 'a', false, CONFIG);
+
+  assert.equal(hidden.length, 3);
+  assert.equal(hidden.find((entry) => entry.id === 'a').visible, false);
+  assert.deepEqual(placementOf(hidden, 'a'), items[0].placement);
+  assertNoOverlap(hidden, 'hide');
+});
+
+test('restoring a hidden module lands in a free slot', () => {
+  const items = [
+    item('a', 0, 0, 1, 1, false),
+    item('b', 0, 0, 1, 1),
+  ];
+
+  const restored = mutate.setVisibility(items, 'a', true, CONFIG);
+
+  assert.equal(restored.find((entry) => entry.id === 'a').visible, true);
+  assertNoOverlap(restored, 'restore');
+  assert.deepEqual(ids(restored), ['a', 'b']);
+});
+
+test('normalization clamps spans when the column count shrinks', () => {
+  const items = [item('wide', 0, 0, 4, 1), item('tall', 0, 1, 1, 2)];
+
+  const normalized = mutate.normalizeLayout(items, { ...CONFIG, columns: 2 });
+
+  assert.ok(
+    overlap.fitsInColumns(placementOf(normalized, 'wide'), 2),
+    'wide item must fit two columns',
+  );
+  assertNoOverlap(normalized, 'normalize');
+});
+
+test('normalization rejects an impossible grid config', () => {
+  assert.throws(() =>
+    mutate.normalizeLayout([item('a', 0, 0, 1, 1)], {
+      ...CONFIG,
+      columns: 1,
+      maxColSpan: 2,
+    }),
+  );
+});
+
+test('layout mutations are deterministic for identical input', () => {
+  const items = [
+    item('a', 0, 0, 1, 1),
+    item('b', 1, 1, 1, 1),
+    item('c', 0, 2, 2, 1),
+  ];
+
+  assert.deepEqual(
+    mutate.normalizeLayout(items, CONFIG),
+    mutate.normalizeLayout(items, CONFIG),
+  );
+  assert.deepEqual(
+    mutate.moveItem(items, 'c', { col: 0, row: 0 }, CONFIG),
+    mutate.moveItem(items, 'c', { col: 0, row: 0 }, CONFIG),
+  );
+});
+
+test('reset shows every module and compacts the grid', () => {
+  const items = [
+    item('a', 0, 3, 1, 1, false),
+    item('b', 1, 5, 1, 1),
+  ];
+
+  const reset = mutate.resetLayout(items, CONFIG);
+
+  assert.ok(reset.every((entry) => entry.visible));
+  assert.deepEqual(ids(reset), ['a', 'b']);
+  assertNoOverlap(reset, 'reset');
+  assert.deepEqual(placementOf(reset, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+});
