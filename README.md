@@ -123,6 +123,68 @@ and never computes FFT, peaks, RMS, or LUFS. Concretely:
 
 See `docs/data-contract.md` for the authoritative boundary.
 
+## Dashboard container
+
+`DashboardGrid` lays modules out on an integer cell grid and owns no state: the
+host passes a `DashboardLayout` and receives every settled change through
+`onLayoutChange`.
+
+```tsx
+import {
+  DashboardGrid,
+  compact,
+  DEFAULT_GRID_CONFIG,
+  DEFAULT_GRID_METRICS,
+  WaveformModule,
+  BUILT_IN_THEMES,
+} from '@minimetermobile/ui';
+
+const [layout, setLayout] = useState<DashboardLayout>(() =>
+  compact({ items: initialItems }, DEFAULT_GRID_CONFIG),
+);
+
+<DashboardGrid
+  layout={layout}
+  theme={BUILT_IN_THEMES.midnight}
+  config={DEFAULT_GRID_CONFIG}
+  metrics={DEFAULT_GRID_METRICS}
+  editing={editing}
+  onLayoutChange={setLayout}
+  renderModule={(item) => <WaveformModule theme={theme} block={blocks[item.id]} />}
+/>;
+```
+
+### Layout model
+
+- `DashboardItem` is `{ id, kind, placement: { col, row, colSpan, rowSpan }, visible, label? }`.
+  Everything the grid draws comes from that object.
+- Hidden items keep their placement in the array. Gravity compaction skips them,
+  so a deleted card does not permanently reserve a hole it may want back.
+- Every mutation returns `{ items, outcome }` and never mutates its input
+  (`moveItem`, `resizeItem`, `setVisibility`, `compact`). Outcomes are explicit
+  (`moved`, `blocked`, `placed`, `noop`) instead of silent no-ops, so the host can
+  show feedback.
+- `resizeItem` returns `blocked` when a span would exceed `maxColSpan`,
+  `maxRowSpan`, or collide — the card stops at the last legal span rather than
+  overlapping its neighbour.
+
+### Editing interactions
+
+Drag and resize are `PanResponder` gestures, not Reanimated worklets: the drag
+path writes a settled layout once, on release, and nothing animates the layout
+array in between.
+
+- Mid-gesture the card follows the finger through a `transform` (drag) or a pixel
+  size delta (resize). The layout array is untouched until release, so
+  `onLayoutChange` only ever fires with positions the host can persist directly.
+- `dragDeltaToCells` and `resizeDeltaToSpans` convert a pixel delta into a cell
+  target and clamp it to the grid; both are pure and unit-tested without React.
+- Outside edit mode no responder is created at all, so a scroll gesture over the
+  grid is never intercepted.
+- `ModuleTray` lists hidden modules and restores them through `setVisibility`,
+  which finds a free slot and recompacts. It renders nothing when everything is
+  visible.
+
 ### Module states
 
 Every module classifies its input before drawing and never invents data:
@@ -139,6 +201,10 @@ VU levels above `1` clamp to full scale, and dB values outside `dbRange` clamp t
 the meter ends. `ModuleSurface` renders the shared shell (host view, single
 `VisualizationCanvas`, and a React Native label/readout overlay), so module text
 stays in React Native and no Skia font asset is bundled.
+
+The dashboard container is display-only for the same reason: it places modules and
+reports where the user put them. Layout persistence, edit-mode chrome, and
+per-device preferences belong to the host app.
 
 ## Peer dependencies
 

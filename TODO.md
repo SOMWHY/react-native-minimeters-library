@@ -7,6 +7,7 @@
 - [x] On-device Storybook integrated into the isolated Expo example with a local-fixture smoke story.
 - [x] Phase 2 delivered: Skia drawing base, structural tokens, and three built-in themes.
 - [x] Phase 3 delivered: seven visualization modules with state classifiers, display helpers, and Storybook stories.
+- [x] Phase 4 delivered: pure grid layout (`compact`, `moveItem`, `resizeItem`, `setVisibility`) plus the editable dashboard (drag, grid-stepped resize, hidden tray).
 
 ## Phase 1 — Foundation and data contract
 - [x] npm workspace and `@minimetermobile/ui` package scaffold.
@@ -32,13 +33,23 @@
 - [x] `SpectrogramModule`: pure RGBA rasterizer plus `Skia.Image` history image.
 - [x] Storybook stories (`Ready`/`Waiting`/`Invalid` + theme select) for all seven modules.
 
+## Phase 4 — Dashboard container and editing
+- [x] Layout model (`DashboardItem`, `DashboardLayout`, `GridConfig`) with clone-on-write layout updates.
+- [x] Pure geometry (`colWidth`, `cellRect`, `layoutRects`, `gridHeight`) and gravity compaction that skips hidden items.
+- [x] Pure mutations with explicit outcomes: `moveItem`, `resizeItem` (returns `blocked` past `maxColSpan`), `setVisibility`, `hiddenItems`.
+- [x] `DashboardGrid`: measured width, zero-width first-frame guard, controlled `onLayoutChange`.
+- [x] `ModuleCard` affordances by mode plus `DraggableCard` drag and resize gestures (pixel preview, cell snap on release).
+- [x] `ModuleTray` restoring hidden modules through `setVisibility`.
+- [x] Storybook stories for scrolling, drag, resize, and hidden-tray states.
+
 ## Remaining phases
-- [ ] Phase 4: Pure layout functions and editable dashboard interactions — spec and plan are written (`docs/superpowers/specs/2026-11-19-dashboard-container-design.md`, `docs/superpowers/plans/2026-11-19-dashboard-container.md`); implementation starts at Task 1.
+- [x] Phase 4: Pure layout functions and editable dashboard interactions — spec and plan are written (`docs/superpowers/specs/2026-11-19-dashboard-container-design.md`, `docs/superpowers/plans/2026-11-19-dashboard-container.md`); implementation starts at Task 1.
 - [ ] Phase 5: Host integration and responsive acceptance checks.
 
 ## Follow-ups
 - [ ] Confirm on device that the seven module stories render (the Android export bundle contains all seven titles and 36 Node tests pass, but no device run yet). Spectrogram's `Skia.Image.MakeImage` + `Skia.Data.fromBytes` runtime path is the least proven piece.
 - [ ] Confirm reanimated shared values are accepted by `LinearGradient` and `Image` children on device (Spectrum gradient).
+- [ ] Confirm the dashboard gestures on device: `PanResponder` inside a vertical `ScrollView` needs `onPanResponderTerminationRequest` tuning if iOS steals the touch, and the resize preview clamps at a 32 px touch target rather than a cell.
 - [x] Host integration regression (`npm test --workspace=minimeters-mobile`) — 5 suites / 24 tests green against this branch.
 - [x] Refresh the parent workspace lockfile (`D:\web_dev_projects\MiniMetersMobile\package-lock.json`) after this branch lands on `main`, so the host install resolves Skia and Worklets.
 
