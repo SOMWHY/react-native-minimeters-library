@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run build && node scripts/workspace-smoke.cjs",
+    "test": "npm run build && node --test tests/foundation.test.cjs && node scripts/workspace-smoke.cjs",
     "typecheck:example": "npm run typecheck --workspace=@minimetermobile/ui-example",
     "start:ui-example": "npm start --workspace=@minimetermobile/ui-example",
     "start:ui-storybook": "npm run storybook --workspace=@minimetermobile/ui-example",
