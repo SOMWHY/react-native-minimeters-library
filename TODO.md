@@ -26,7 +26,7 @@
 - [ ] Phase 5: Host integration and responsive acceptance checks.
 
 ## Follow-ups
-- [ ] Refresh the parent workspace lockfile (`D:\web_dev_projects\MiniMetersMobile\package-lock.json`) after this branch lands on `main`, so the host install resolves Skia and Worklets.
+- [x] Refresh the parent workspace lockfile (`D:\web_dev_projects\MiniMetersMobile\package-lock.json`) after this branch lands on `main`, so the host install resolves Skia and Worklets.
 
 ## Deferred
 - [ ] MiniMeters INI theme import; waiting for a real sample or authoritative format source.
