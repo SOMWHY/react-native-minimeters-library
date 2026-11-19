@@ -20,6 +20,12 @@ export {
 } from './oscilloscope';
 
 export {
+  VectorscopeModule,
+  resolveVectorscopeState,
+  type VectorscopeModuleProps,
+} from './vectorscope';
+
+export {
   WaveformModule,
   resolveWaveformState,
   type WaveformModuleProps,
