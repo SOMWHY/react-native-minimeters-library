@@ -28,9 +28,11 @@ description is available.
   `ember` (magenta/red/orange). Presets may change colors only.
 - Implement `VisualizationCanvas` as the sole owner of Skia `Canvas` setup,
   clipping, background, common grid, measured bounds, and a typed drawing
-  context. The context exposes the injected theme colors, structural tokens,
-  and coordinate helpers to future modules. Modules must not create their own
-  Canvas or hard-code colors and stroke widths.
+  context. Future modules render Skia nodes as its children and read the
+  context through `useDrawingContext()`. The context exposes measured width and
+  height, animated theme colors, structural tokens, and `mapX`/`mapY`
+  coordinate helpers. Modules must not create their own Canvas or hard-code
+  colors and stroke widths.
 - Animate theme prop changes through Reanimated at the drawing base. Only color
   values transition; layout, spacing, typography, radii, and stroke widths stay
   fixed. The library receives the selected theme as a prop and owns no theme
