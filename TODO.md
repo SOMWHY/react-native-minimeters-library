@@ -33,7 +33,7 @@
 - [x] Storybook stories (`Ready`/`Waiting`/`Invalid` + theme select) for all seven modules.
 
 ## Remaining phases
-- [ ] Phase 4: Pure layout functions and editable dashboard interactions.
+- [ ] Phase 4: Pure layout functions and editable dashboard interactions — spec and plan are written (`docs/superpowers/specs/2026-11-19-dashboard-container-design.md`, `docs/superpowers/plans/2026-11-19-dashboard-container.md`); implementation starts at Task 1.
 - [ ] Phase 5: Host integration and responsive acceptance checks.
 
 ## Follow-ups
