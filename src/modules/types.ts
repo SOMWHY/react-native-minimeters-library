@@ -40,5 +40,7 @@ export interface ModuleBaseProps {
   readonly theme: VisualizationTheme;
   /** Fixed surface height in dp. */
   readonly height?: number;
+  /** Optional caption rendered in the surface corner. */
+  readonly label?: string;
   readonly style?: StyleProp<ViewStyle>;
 }
