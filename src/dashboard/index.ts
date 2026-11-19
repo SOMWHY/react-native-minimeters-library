@@ -19,6 +19,10 @@ export {
 } from './layout';
 export { DashboardGrid } from './DashboardGrid';
 export type { DashboardGridProps } from './DashboardGrid';
+export { ModuleCard } from './ModuleCard';
+export type { ModuleCardProps } from './ModuleCard';
+export { canResize, cardAffordances } from './affordances';
+export type { CardAffordances } from './affordances';
 export type {
   CellRect,
   DashboardItem,

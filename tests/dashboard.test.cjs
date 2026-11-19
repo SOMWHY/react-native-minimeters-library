@@ -514,3 +514,45 @@ test('the package root re-exports the dashboard surface', () => {
   assert.match(dashboard, /layoutRects/);
   assert.match(dashboard, /DashboardGrid/);
 });
+
+test('edit mode is the only source of drag and resize affordances', () => {
+  const { cardAffordances } = require('../dist/dashboard/affordances');
+
+  assert.deepEqual(cardAffordances(true), {
+    draggable: true,
+    resizable: true,
+    hideable: true,
+  });
+  assert.deepEqual(cardAffordances(false), {
+    draggable: false,
+    resizable: false,
+    hideable: false,
+  });
+});
+
+test('a resize is refused when it would break a span limit', () => {
+  const { canResize } = require('../dist/dashboard/affordances');
+  const placement = { col: 0, row: 0, colSpan: 1, rowSpan: 1 };
+
+  assert.equal(canResize(placement, { dCols: 1, dRows: 1 }, CONFIG), true);
+  assert.equal(canResize(placement, { dCols: 2, dRows: 0 }, CONFIG), false);
+  assert.equal(canResize(placement, { dCols: -1, dRows: 0 }, CONFIG), false);
+  assert.equal(canResize(placement, { dCols: 0, dRows: 4 }, CONFIG), false);
+
+  // One column of room left: a second column of growth cannot fit.
+  const atRightEdge = { col: 1, row: 0, colSpan: 1, rowSpan: 1 };
+  assert.equal(canResize(atRightEdge, { dCols: 1, dRows: 0 }, CONFIG), false);
+});
+
+test('the module card keeps its handles out of non-edit mode', () => {
+  const card = require('node:fs').readFileSync(
+    path.join(ROOT, 'dist', 'dashboard', 'ModuleCard.js'),
+    'utf8',
+  );
+
+  assert.match(card, /cardAffordances/);
+  assert.match(card, /accessibilityRole/);
+  assert.match(card, /accessibilityLabel/);
+  // Handles are inside an `affordances.x ? ... : null` branch, never a disabled prop.
+  assert.doesNotMatch(card, /disabled[=:]/);
+});

@@ -182,3 +182,13 @@ type Story = StoryObj<typeof meta>;
 
 /** Seven modules on a two-column phone grid — the layout the host ships. */
 export const Stable: Story = {};
+
+/** Read-only: no grab bar and no resize corner are rendered at all. */
+export const Viewing: Story = {
+  args: { editing: false },
+};
+
+/** Edit mode: every card grows a grab bar and a resize corner. */
+export const Editing: Story = {
+  args: { editing: true },
+};

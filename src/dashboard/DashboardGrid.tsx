@@ -1,13 +1,12 @@
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { STRUCTURAL_TOKENS } from '../theme/structural-tokens';
 import type { VisualizationTheme } from '../theme/types';
 import { gridHeight, layoutRects } from './geometry';
+import { ModuleCard } from './ModuleCard';
 import type {
-  CellRect,
   DashboardItem,
   DashboardLayout,
   GridConfig,
@@ -26,46 +25,6 @@ export interface DashboardGridProps {
   readonly style?: StyleProp<ViewStyle>;
 }
 
-interface CardShellProps {
-  readonly item: DashboardItem;
-  readonly theme: VisualizationTheme;
-  readonly rect: CellRect;
-  readonly children: ReactNode;
-}
-
-/**
- * Positioned card placeholder.
- *
- * The interactive shell (label, handles, hide action) arrives with `ModuleCard`;
- * this only proves the cell-to-pixel mapping on device, so the geometry can be
- * verified before gestures exist.
- */
-function CardShell({ item, theme, rect, children }: CardShellProps) {
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          left: rect.x,
-          top: rect.y,
-          width: rect.width,
-          height: rect.height,
-          backgroundColor: theme.colors.surface,
-        },
-      ]}
-    >
-      <View style={styles.body}>{children}</View>
-      {item.label === undefined ? null : (
-        <View style={styles.labelRow} pointerEvents="none">
-          <Text style={[styles.label, { color: theme.colors.textMuted }]}>
-            {item.label}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
 /**
  * Dashboard container.
  *
@@ -78,6 +37,7 @@ export function DashboardGrid({
   theme,
   config,
   metrics,
+  editing = false,
   renderModule,
   style,
 }: DashboardGridProps) {
@@ -111,14 +71,15 @@ export function DashboardGrid({
       {width === 0
         ? null
         : placed.map(({ item, rect }) => (
-            <CardShell
+            <ModuleCard
               key={item.id}
               item={item}
               theme={theme}
+              editing={editing}
               rect={rect}
             >
               {renderModule(item)}
-            </CardShell>
+            </ModuleCard>
           ))}
     </View>
   );
@@ -127,25 +88,5 @@ export function DashboardGrid({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-  },
-  card: {
-    position: 'absolute',
-    overflow: 'hidden',
-    borderRadius: STRUCTURAL_TOKENS.radii.md,
-  },
-  body: {
-    flex: 1,
-  },
-  labelRow: {
-    position: 'absolute',
-    top: STRUCTURAL_TOKENS.spacing.xs,
-    left: STRUCTURAL_TOKENS.spacing.sm,
-  },
-  label: {
-    fontFamily: STRUCTURAL_TOKENS.typography.fontFamily,
-    fontSize: STRUCTURAL_TOKENS.typography.micro,
-    fontWeight: STRUCTURAL_TOKENS.typography.fontWeight.medium,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
 });
