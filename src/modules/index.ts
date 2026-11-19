@@ -20,6 +20,13 @@ export {
 } from './oscilloscope';
 
 export {
+  LoudnessModule,
+  resolveLoudnessState,
+  type LoudnessModuleProps,
+  type LoudnessValues,
+} from './loudness';
+
+export {
   SpectrumModule,
   resolveSpectrumState,
   type SpectrumInput,

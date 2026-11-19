@@ -379,3 +379,53 @@ test('ships the VU module and re-exports it from the modules barrel', () => {
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/vu/);
 });
+
+const loudnessState = require('../dist/modules/loudness/state');
+
+test('classifies loudness input as waiting, invalid, or ready', () => {
+  assert.equal(loudnessState.resolveLoudnessState(undefined), 'waiting');
+  assert.equal(loudnessState.resolveLoudnessState(null), 'waiting');
+
+  assert.equal(
+    loudnessState.resolveLoudnessState({ peak: Number.NaN, rms: -20, lufs: -14 }),
+    'invalid',
+  );
+  assert.equal(
+    loudnessState.resolveLoudnessState({
+      peak: -3,
+      rms: Number.NEGATIVE_INFINITY,
+      lufs: -14,
+    }),
+    'invalid',
+  );
+  assert.equal(
+    loudnessState.resolveLoudnessState({ peak: -3, rms: -20, lufs: undefined }),
+    'invalid',
+  );
+
+  // Documented silence is a valid reading, not an error.
+  assert.equal(
+    loudnessState.resolveLoudnessState({ peak: -90, rms: -90, lufs: -90 }),
+    'ready',
+  );
+  assert.equal(
+    loudnessState.resolveLoudnessState({ peak: -3, rms: -20, lufs: -14 }),
+    'ready',
+  );
+});
+
+test('clamps loudness meters below and above the dB window', () => {
+  assert.equal(display.toMeterScale(-90, [-60, 0]), 0);
+  assert.equal(display.toMeterScale(-61, [-60, 0]), 0);
+  assert.equal(display.toMeterScale(3, [-60, 0]), 1);
+  assert.equal(display.toMeterScale(-30, [-60, 0]), 0.5);
+});
+
+test('ships the loudness module and re-exports it from the modules barrel', () => {
+  assert.ok(
+    existsSync(path.join(ROOT, 'dist/modules/loudness/LoudnessModule.js')),
+  );
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/loudness/);
+});
