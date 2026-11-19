@@ -48,7 +48,7 @@
 - `mapLinear(value: number, domain: NumericRange, range: NumericRange): number` does not clamp; it throws `TypeError` for non-finite inputs and `RangeError` when the domain endpoints are equal.
 - `isCanvasReady(width: number, height: number): boolean` is true only when both dimensions are finite and positive.
 
-- [ ] **Step 1: Write failing contract tests**
+- [x] **Step 1: Write failing contract tests**
 
 Create `tests/foundation.test.cjs`:
 
@@ -107,13 +107,13 @@ test('built-in themes have complete color roles and share no structural fields',
 });
 ```
 
-- [ ] **Step 2: Run the tests and verify they fail**
+- [x] **Step 2: Run the tests and verify they fail**
 
 Run: `npm test --workspace=@minimetermobile/ui`
 
 Expected: FAIL because the theme, coordinate, and canvas-size exports do not exist yet.
 
-- [ ] **Step 3: Implement the pure contracts**
+- [x] **Step 3: Implement the pure contracts**
 
 In `src/theme/types.ts`, define readonly `VisualizationColors` with string roles `canvas`, `surface`, `grid`, `axis`, `text`, `textMuted`, `accent`, and nested trace roles `primary`, `secondary`, `left`, `right`, `low`, `mid`, and `high`. Define `VisualizationTheme` with `id`, `name`, and `colors`.
 
@@ -180,13 +180,13 @@ In `src/drawing/coordinates.ts`, implement `mapLinear` by validating every numbe
 
 In `src/drawing/canvas-size.ts`, implement `isCanvasReady` as a finite-positive-dimensions guard. Export `BUILT_IN_THEMES`, `STRUCTURAL_TOKENS`, `mapLinear`, and `isCanvasReady` from `src/index.ts`. Set the package `test` script to `npm run build && node --test tests/foundation.test.cjs && node scripts/workspace-smoke.cjs`.
 
-- [ ] **Step 4: Run the pure foundation tests**
+- [x] **Step 4: Run the pure foundation tests**
 
 Run: `npm test --workspace=@minimetermobile/ui`
 
 Expected: the new tests and existing workspace smoke check pass.
 
-- [ ] **Step 5: Commit the pure foundation**
+- [x] **Step 5: Commit the pure foundation**
 
 ```powershell
 git add package.json src/index.ts src/theme src/drawing/coordinates.ts src/drawing/canvas-size.ts tests/foundation.test.cjs
@@ -211,7 +211,7 @@ git commit -m "feat: add theme and drawing tokens" -m "Co-authored-by: Copilot <
 - `useDrawingContext()` returns `width`, `height`, `theme`, `STRUCTURAL_TOKENS`, animated color roles, `mapX(value, domain)`, and `mapY(value, domain)`.
 - `mapX` maps the supplied domain to `[0, width]`; `mapY` maps it to `[height, 0]`.
 
-- [ ] **Step 1: Add Skia as a peer and install the Expo-matched native package**
+- [x] **Step 1: Add Skia as a peer and install the Expo-matched native package**
 
 Add `@shopify/react-native-skia: 2.14.0` to the UI package's `peerDependencies` and `devDependencies`. Add `react-native-worklets: >=0.7.0` to peer dependencies and `0.13.0` to dev dependencies to satisfy Skia's peer contract. From the example, run `npx expo install @shopify/react-native-skia`; keep the resolved Expo SDK version.
 
@@ -225,7 +225,7 @@ npm --prefix D:\web_dev_projects\MiniMetersMobile\react-native-minimeters-librar
 
 Expected: Expo selects Skia `2.14.0`; Storybook and Skia remain outside the regular `dependencies` of the UI package.
 
-- [ ] **Step 2: Define the typed drawing context**
+- [x] **Step 2: Define the typed drawing context**
 
 In `src/drawing/types.ts`, import `NumericRange` from `coordinates.ts`, define `AnimatedVisualizationColors` with a `SharedValue<string>` for every `VisualizationColors` role, and:
 
@@ -243,17 +243,17 @@ export interface DrawingContextValue {
 
 In `DrawingContext.tsx`, provide the context and `useDrawingContext()`. Throw an explicit error when the hook is used outside `VisualizationCanvas`.
 
-- [ ] **Step 3: Add Reanimated color interpolation**
+- [x] **Step 3: Add Reanimated color interpolation**
 
 Implement `useAnimatedThemeColors(theme)` with Reanimated shared values. Keep a shared progress value and the previous/target palette; when the theme prop changes, reset progress to `0`, run `withTiming(1, { duration: STRUCTURAL_TOKENS.motion.themeTransitionMs })`, and derive every role using `interpolateColor(progress, [0, 1], [previous, target])`. Keep colors in `SharedValue<string>` fields for Skia children; do not animate or mutate any structural token.
 
-- [ ] **Step 4: Implement `VisualizationCanvas`**
+- [x] **Step 4: Implement `VisualizationCanvas`**
 
 Render a measured React Native `View` containing the sole Skia `Canvas`. On layout, update the measured dimensions. When `isCanvasReady(width, height)` is false, render no grid or child drawing and do not throw. Otherwise draw the background and `STRUCTURAL_TOKENS.grid.subdivisions` evenly spaced horizontal/vertical grid divisions using theme `canvas`/`grid` colors and `strokeWidth.hairline`, then render children inside the same Canvas and provide `DrawingContextValue` around the Canvas subtree.
 
 Implement `mapX` and `mapY` by calling the tested `mapLinear`; `mapY` uses the reversed viewport `[height, 0]`. Export `VisualizationCanvas`, `DrawingContextValue`, and `useDrawingContext` from the drawing barrel and package root.
 
-- [ ] **Step 5: Verify package and Expo integration**
+- [x] **Step 5: Verify package and Expo integration**
 
 Run:
 
@@ -265,7 +265,7 @@ npm run typecheck --workspace=@minimetermobile/ui-example
 
 Expected: Skia and Worklets peer requirements are satisfied and both packages typecheck.
 
-- [ ] **Step 6: Commit the Skia base**
+- [x] **Step 6: Commit the Skia base**
 
 ```powershell
 git add package.json package-lock.json example/package.json src/drawing src/index.ts
@@ -284,7 +284,7 @@ git commit -m "feat: add shared Skia visualization canvas" -m "Co-authored-by: C
 - Consumes: `VisualizationCanvas`, `BUILT_IN_THEMES`, `useDrawingContext`, `pcmFrame`, and the local Storybook on-device controls.
 - Produces: an isolated Storybook story that renders the documented PCM fixture through the shared canvas and lets developers inspect all three palettes.
 
-- [ ] **Step 1: Add the Storybook canvas preview**
+- [x] **Step 1: Add the Storybook canvas preview**
 
 Create a Storybook story with a fixed-height host `View`, `VisualizationCanvas`, and a small child component that reads `useDrawingContext()`. Draw four points from the left PCM channel using `pcmFrame.samples[index * pcmFrame.channels]`; map indices in `[0, pcmFrame.samplesPerChannel - 1]` with `mapX` and fixture amplitudes in `[-0.5, 0.5]` with `mapY`. Use `colors.traces.primary` and `tokens.strokeWidth.regular`; do not introduce mock audio fields or network/server code.
 
@@ -302,15 +302,15 @@ argTypes: {
 
 Changing the arg exercises color interpolation without a layout remount. Keep the Storybook selection UI out of the published UI package.
 
-- [ ] **Step 2: Extend the package smoke check**
+- [x] **Step 2: Extend the package smoke check**
 
 Update `scripts/workspace-smoke.cjs` to assert that Skia is declared as a peer dependency, not a regular dependency. Preserve the existing package-entry and React Native peer assertions.
 
-- [ ] **Step 3: Document the rendering foundation**
+- [x] **Step 3: Document the rendering foundation**
 
 Update `README.md` with the public theme exports, the `VisualizationCanvas`/`useDrawingContext()` usage boundary, and the rule that modules use the shared grid, color roles, and structural tokens. State that INI parsing remains deferred.
 
-- [ ] **Step 4: Verify the full Phase 2 acceptance set**
+- [x] **Step 4: Verify the full Phase 2 acceptance set**
 
 Run from the standalone library root:
 
@@ -331,13 +331,32 @@ npm test --workspace=minimeters-mobile
 
 Expected: pure tests pass; the Storybook-enabled Android bundle contains the canvas story; mobile tests stay green; `npm pack --dry-run` includes the Skia peer contract but excludes `example/` and Storybook runtime files.
 
-- [ ] **Step 5: Mark Phase 2 complete**
+- [x] **Step 5: Mark Phase 2 complete**
 
 Mark only Phase 2 complete in `TODO.md`. Keep visualization modules, dashboard work, host integration, and deferred INI import unchecked.
 
-- [ ] **Step 6: Commit the preview and Phase 2 completion**
+- [x] **Step 6: Commit the preview and Phase 2 completion**
 
 ```powershell
 git add README.md TODO.md example/.rnstorybook/stories/Canvas.stories.tsx scripts/workspace-smoke.cjs
 git commit -m "feat: preview Skia theme foundation" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
+
+## Implementation notes
+
+Two deviations from the written steps, both driven by the CommonJS/ESM boundary:
+
+- `tests/foundation.test.cjs` loads the pure sub-barrels (`../dist/theme`,
+  `../dist/drawing/coordinates`, `../dist/drawing/canvas-size`) instead of the
+  package root. `dist/index.js` also re-exports the Skia component layer, so
+  requiring the root from plain Node loads `@shopify/react-native-skia` and
+  `react-native-reanimated` and fails. A separate assertion reads
+  `dist/index.js` to prove the root barrel still re-exports `./theme` and
+  `./drawing`.
+- `src/drawing/reanimated.ts` is the single adapter for the Reanimated runtime.
+  Reanimated publishes its declarations as an ECMAScript module
+  (`lib/typescript/package.json` is `{"type":"module"}`), so a plain import from
+  CommonJS fails with TS1479. The adapter uses a type-only
+  `import ... with { 'resolution-mode': 'import' }` for the `SharedValue` type and
+  a typed `require` call for the runtime. Keep it the only file that touches
+  Reanimated directly.
