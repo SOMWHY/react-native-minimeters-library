@@ -40,6 +40,17 @@ export {
 } from './vectorscope';
 
 export {
+  SpectrogramModule,
+  resolveSpectrogramState,
+  isSpectrogramValid,
+  parseHexColor,
+  toSpectrogramPixels,
+  type RgbTriple,
+  type SpectrogramModuleProps,
+  type SpectrogramRaster,
+} from './spectrogram';
+
+export {
   VuModule,
   resolveVuState,
   type VuLevels,

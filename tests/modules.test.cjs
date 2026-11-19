@@ -429,3 +429,98 @@ test('ships the loudness module and re-exports it from the modules barrel', () =
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/loudness/);
 });
+
+const spectrogramPixels = require('../dist/modules/spectrogram/pixels');
+const spectrogramState = require('../dist/modules/spectrogram/state');
+
+const RAMP = [
+  [0, 0, 0],
+  [64, 64, 64],
+  [255, 255, 255],
+];
+
+test('rasterizes spectrogram rows into RGBA bytes in row-major order', () => {
+  const raster = spectrogramPixels.toSpectrogramPixels(
+    [
+      [0, 0.5, 1],
+      [1, 0.5, 0],
+    ],
+    8,
+    RAMP,
+  );
+
+  assert.equal(raster.width, 3);
+  assert.equal(raster.height, 2);
+  assert.equal(raster.bytes.length, raster.width * raster.height * 4);
+
+  for (const byte of raster.bytes) {
+    assert.ok(Number.isFinite(byte) && byte >= 0 && byte <= 255, `byte ${byte}`);
+  }
+
+  // Row-major: the first row's first pixel comes first, and every pixel is opaque.
+  assert.deepEqual(Array.from(raster.bytes.slice(0, 4)), [0, 0, 0, 255]);
+  assert.deepEqual(Array.from(raster.bytes.slice(12, 16)), [255, 255, 255, 255]);
+});
+
+test('trims the oldest spectrogram rows down to maxRows', () => {
+  const rows = [
+    [0],
+    [0],
+    [1],
+    [1],
+  ];
+
+  const raster = spectrogramPixels.toSpectrogramPixels(rows, 2, RAMP);
+
+  assert.equal(raster.height, 2);
+  // The newest two rows survive, so the top of the image is already bright.
+  assert.deepEqual(Array.from(raster.bytes.slice(0, 4)), [255, 255, 255, 255]);
+});
+
+test('returns a zero-size raster for an empty row set', () => {
+  const raster = spectrogramPixels.toSpectrogramPixels([], 8, RAMP);
+
+  assert.equal(raster.width, 0);
+  assert.equal(raster.height, 0);
+  assert.equal(raster.bytes.length, 0);
+});
+
+test('parses hex theme colors into RGB triples', () => {
+  assert.deepEqual(spectrogramPixels.parseHexColor('#fff'), [255, 255, 255]);
+  assert.deepEqual(spectrogramPixels.parseHexColor('#8A2BE2'), [138, 43, 226]);
+  assert.deepEqual(spectrogramPixels.parseHexColor('#00000080'), [0, 0, 0]);
+  assert.equal(spectrogramPixels.parseHexColor('not-a-color'), null);
+});
+
+test('classifies spectrogram input as waiting, invalid, or ready', () => {
+  assert.equal(spectrogramState.resolveSpectrogramState(undefined), 'waiting');
+  assert.equal(spectrogramState.resolveSpectrogramState(null), 'waiting');
+  assert.equal(spectrogramState.resolveSpectrogramState([]), 'waiting');
+
+  // Ragged rows would smear the history.
+  assert.equal(
+    spectrogramState.resolveSpectrogramState([[0, 0], [0]]),
+    'invalid',
+  );
+  assert.equal(
+    spectrogramState.resolveSpectrogramState([[0, Number.NaN]]),
+    'invalid',
+  );
+
+  assert.equal(
+    spectrogramState.resolveSpectrogramState([
+      [0, 0.5],
+      [0.5, 1],
+    ]),
+    'ready',
+  );
+});
+
+test('ships the spectrogram module and re-exports it from the modules barrel', () => {
+  assert.ok(
+    existsSync(path.join(ROOT, 'dist/modules/spectrogram/SpectrogramModule.js')),
+  );
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/spectrogram/);
+});
