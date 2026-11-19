@@ -556,3 +556,81 @@ test('the module card keeps its handles out of non-edit mode', () => {
   // Handles are inside an `affordances.x ? ... : null` branch, never a disabled prop.
   assert.doesNotMatch(card, /disabled[=:]/);
 });
+
+test('a sub-cell drag keeps the item in its own cell', () => {
+  const { dragDeltaToCells } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    placement: { col: 1, row: 2, colSpan: 1, rowSpan: 1 },
+  };
+
+  // Below half a cell in both directions: no cell is claimed yet.
+  assert.deepEqual(
+    dragDeltaToCells({ dx: 50, dy: 40 }, context),
+    { col: 1, row: 2 },
+  );
+});
+
+test('a drag of 1.6 cells rounds to two cells', () => {
+  const { dragDeltaToCells } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    placement: { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+  };
+
+  const target = dragDeltaToCells({ dx: 1.6 * 108, dy: 0 }, context);
+
+  assert.equal(target.col, 2);
+  assert.equal(target.row, 0);
+});
+
+test('a drag never leaves the grid', () => {
+  const { dragDeltaToCells } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    placement: { col: 1, row: 1, colSpan: 1, rowSpan: 1 },
+  };
+
+  assert.deepEqual(
+    dragDeltaToCells({ dx: -3000, dy: -3000 }, context),
+    { col: 0, row: 0 },
+  );
+});
+
+test('a wide card cannot be dragged past the right edge', () => {
+  const { dragDeltaToCells } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 100,
+    rowHeight: 96,
+    gap: 8,
+    columns: 2,
+    placement: { col: 0, row: 0, colSpan: 2, rowSpan: 1 },
+  };
+
+  const target = dragDeltaToCells({ dx: 108, dy: 0 }, context);
+
+  // The card is two columns wide on a two-column grid, so it cannot move right.
+  assert.equal(target.col, 0);
+  assert.equal(target.row, 0);
+});
+
+test('a drag with an unmeasured cell width does not move the item', () => {
+  const { dragDeltaToCells } = require('../dist/dashboard/gestures');
+  const context = {
+    cellWidth: 0,
+    rowHeight: 96,
+    gap: 8,
+    placement: { col: 1, row: 1, colSpan: 1, rowSpan: 1 },
+  };
+
+  assert.deepEqual(
+    dragDeltaToCells({ dx: 200, dy: 200 }, context),
+    { col: 1, row: 1 },
+  );
+});

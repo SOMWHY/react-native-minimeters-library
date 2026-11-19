@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import type { GestureResponderHandlers } from 'react-native';
 import type { ReactNode } from 'react';
 
 import { STRUCTURAL_TOKENS } from '../theme/structural-tokens';
@@ -17,6 +18,10 @@ export interface ModuleCardProps {
   readonly onResizeMove?: (dCols: number, dRows: number) => void;
   readonly onResizeEnd?: (dCols: number, dRows: number) => void;
   readonly onHide?: () => void;
+  /** Pan responders owned by the grid, spread onto the grab bar. */
+  readonly dragHandlers?: GestureResponderHandlers;
+  /** Transient mid-drag pixel offset; never persisted to the layout. */
+  readonly offset?: { readonly dx: number; readonly dy: number };
   readonly children: ReactNode;
 }
 
@@ -42,6 +47,8 @@ export function ModuleCard({
   theme,
   editing,
   rect,
+  dragHandlers,
+  offset,
   children,
 }: ModuleCardProps) {
   const affordances = cardAffordances(editing);
@@ -57,6 +64,10 @@ export function ModuleCard({
           width: rect.width,
           height: rect.height,
           backgroundColor: theme.colors.surface,
+          transform: [
+            { translateX: offset?.dx ?? 0 },
+            { translateY: offset?.dy ?? 0 },
+          ],
         },
       ]}
     >
@@ -74,6 +85,7 @@ export function ModuleCard({
           accessibilityRole="button"
           accessibilityLabel={`Move ${label}`}
           accessibilityHint="Drag to change this module's grid position"
+          {...dragHandlers}
         />
       ) : null}
 

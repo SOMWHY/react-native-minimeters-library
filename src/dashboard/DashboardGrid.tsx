@@ -4,8 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 import type { VisualizationTheme } from '../theme/types';
+import { DraggableCard } from './DraggableCard';
 import { gridHeight, layoutRects } from './geometry';
-import { ModuleCard } from './ModuleCard';
+import { moveItem } from './layout';
 import type {
   DashboardItem,
   DashboardLayout,
@@ -39,6 +40,7 @@ export function DashboardGrid({
   metrics,
   editing = false,
   renderModule,
+  onLayoutChange,
   style,
 }: DashboardGridProps) {
   const [width, setWidth] = useState(0);
@@ -50,6 +52,13 @@ export function DashboardGrid({
       setWidth((current) => (current === next ? current : next));
     },
     [],
+  );
+
+  const handleDragEnd = useCallback(
+    (id: string, target: { readonly col: number; readonly row: number }) => {
+      onLayoutChange({ items: moveItem(layout.items, id, target, config) });
+    },
+    [config, layout.items, onLayoutChange],
   );
 
   // Column width is the only value that needs measurement; everything else comes
@@ -71,15 +80,19 @@ export function DashboardGrid({
       {width === 0
         ? null
         : placed.map(({ item, rect }) => (
-            <ModuleCard
+            <DraggableCard
               key={item.id}
               item={item}
               theme={theme}
               editing={editing}
               rect={rect}
+              cellWidth={cellWidth}
+              metrics={metrics}
+              config={config}
+              onDragEnd={(target) => handleDragEnd(item.id, target)}
             >
               {renderModule(item)}
-            </ModuleCard>
+            </DraggableCard>
           ))}
     </View>
   );

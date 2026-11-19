@@ -192,3 +192,22 @@ export const Viewing: Story = {
 export const Editing: Story = {
   args: { editing: true },
 };
+
+/**
+ * Drag demo: the card follows the finger as a transform, and only on release is
+ * the cell committed through `moveItem`. Displaced neighbours fall into the first
+ * free hole, so shapes never swap.
+ */
+export const Drag: Story = {
+  args: {
+    editing: true,
+    layout: {
+      items: [
+        item('waveform', 'waveform', 0, 0, 1, 1),
+        item('oscilloscope', 'oscilloscope', 1, 0, 1, 1),
+        item('vu', 'vu', 0, 1, 1, 1),
+        item('loudness', 'loudness', 1, 1, 1, 1),
+      ],
+    },
+  },
+};
