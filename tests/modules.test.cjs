@@ -341,3 +341,41 @@ test('ships the spectrum module and re-exports it from the modules barrel', () =
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/spectrum/);
 });
+
+const vuState = require('../dist/modules/vu/state');
+
+test('classifies VU input as waiting, invalid, or ready', () => {
+  assert.equal(vuState.resolveVuState(undefined), 'waiting');
+  assert.equal(vuState.resolveVuState(null), 'waiting');
+
+  assert.equal(
+    vuState.resolveVuState({ left: Number.NaN, right: 0 }),
+    'invalid',
+  );
+  assert.equal(
+    vuState.resolveVuState({ left: 0, right: Number.POSITIVE_INFINITY }),
+    'invalid',
+  );
+  assert.equal(
+    vuState.resolveVuState({ left: 0, right: 0, leftPeak: Number.NaN }),
+    'invalid',
+  );
+
+  assert.equal(vuState.resolveVuState({ left: 0, right: 0 }), 'ready');
+  assert.equal(vuState.resolveVuState({ left: 0.5, right: 0.9 }), 'ready');
+});
+
+test('clamps a hot VU level instead of rejecting it', () => {
+  const hot = { left: 1.4, right: 0.5 };
+
+  assert.equal(vuState.resolveVuState(hot), 'ready');
+  assert.equal(display.clampUnit(hot.left), 1);
+  assert.equal(display.clampUnit(-0.4), 0);
+});
+
+test('ships the VU module and re-exports it from the modules barrel', () => {
+  assert.ok(existsSync(path.join(ROOT, 'dist/modules/vu/VuModule.js')));
+
+  const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
+  assert.match(modulesEntry, /\.\/vu/);
+});
