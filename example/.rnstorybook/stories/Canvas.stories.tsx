@@ -25,7 +25,7 @@ function PcmTrace() {
   const { colors, mapX, mapY, tokens } = useDrawingContext();
 
   const path = useMemo(() => {
-    const trace = Skia.Path.Make();
+    const trace = Skia.PathBuilder.Make();
 
     for (let index = 0; index < pcmFrame.samplesPerChannel; index += 1) {
       const x = mapX(index, SAMPLE_INDEX_DOMAIN);
@@ -38,7 +38,7 @@ function PcmTrace() {
       }
     }
 
-    return trace;
+    return trace.build();
   }, [mapX, mapY]);
 
   return (

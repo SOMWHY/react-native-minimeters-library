@@ -7,7 +7,7 @@ import {
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { View } from 'react-native';
 
-import { spectrumBins, spectrumDbRange } from '../../fixtures/spectrum-bins';
+import { spectrumBins, spectrumDbRange } from '../../../fixtures/spectrum-bins';
 
 function SpectrumPreview({
   theme,

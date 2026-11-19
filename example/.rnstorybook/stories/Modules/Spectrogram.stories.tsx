@@ -6,7 +6,7 @@ import {
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { View } from 'react-native';
 
-import { spectrogramRows } from '../../fixtures/spectrogram-rows';
+import { spectrogramRows } from '../../../fixtures/spectrogram-rows';
 
 function SpectrogramPreview({
   theme,
