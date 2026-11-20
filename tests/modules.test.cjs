@@ -524,3 +524,25 @@ test('ships the spectrogram module and re-exports it from the modules barrel', (
   const modulesEntry = readFileSync(path.join(ROOT, 'dist/modules/index.js'), 'utf8');
   assert.match(modulesEntry, /\.\/spectrogram/);
 });
+
+test('provides the drawing context inside the canvas element tree', () => {
+  // Skia renders canvas children through its own reconciler root, and React
+  // context does not cross reconciler roots: a provider hoisted above `Canvas`
+  // leaves every module plot with a null context.
+  const canvasSource = readFileSync(
+    path.join(ROOT, 'dist/drawing/VisualizationCanvas.js'),
+    'utf8',
+  );
+
+  const canvasIndex = canvasSource.indexOf('react_native_skia_1.Canvas');
+  const providerIndex = canvasSource.indexOf(
+    'DrawingContext_1.DrawingContext.Provider',
+  );
+
+  assert.ok(canvasIndex >= 0, 'the canvas element is rendered');
+  assert.ok(providerIndex >= 0, 'the drawing context is provided');
+  assert.ok(
+    providerIndex > canvasIndex,
+    'the provider must be nested inside the canvas children',
+  );
+});
