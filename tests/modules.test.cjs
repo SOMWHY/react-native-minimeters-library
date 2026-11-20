@@ -546,3 +546,41 @@ test('provides the drawing context inside the canvas element tree', () => {
     'the provider must be nested inside the canvas children',
   );
 });
+
+test('renders the canvas through a TextureView on Android', () => {
+  // A SurfaceView is a separate window layer: it composites above the React
+  // Native tree, so swipes starting on a plot never reach a scroll container.
+  const canvasSource = readFileSync(
+    path.join(ROOT, 'dist/drawing/VisualizationCanvas.js'),
+    'utf8',
+  );
+
+  assert.match(canvasSource, /surfaceType: 'TextureView'/);
+});
+
+test('modules carry no caption of their own', () => {
+  // The dashboard card owns the only title. A module that defaults its own label
+  // paints the same text twice in the same corner.
+  const modules = [
+    'loudness/LoudnessModule',
+    'oscilloscope/OscilloscopeModule',
+    'spectrogram/SpectrogramModule',
+    'spectrum/SpectrumModule',
+    'vectorscope/VectorscopeModule',
+    'vu/VuModule',
+    'waveform/WaveformModule',
+  ];
+
+  for (const moduleName of modules) {
+    const source = readFileSync(
+      path.join(ROOT, 'dist/modules', `${moduleName}.js`),
+      'utf8',
+    );
+
+    assert.doesNotMatch(
+      source,
+      /DEFAULT_LABEL/,
+      `${moduleName} must not default its label`,
+    );
+  }
+});

@@ -10,7 +10,6 @@ import type { ModuleBaseProps } from '../types';
 import { resolveLoudnessState, type LoudnessValues } from './state';
 
 const DEFAULT_DB_RANGE: readonly [number, number] = [-60, 0];
-const DEFAULT_LABEL = 'LOUDNESS';
 const ROWS = 3;
 
 export interface LoudnessModuleProps extends ModuleBaseProps {
@@ -105,7 +104,7 @@ function LoudnessReadout({
 export function LoudnessModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   data,
   dbRange = DEFAULT_DB_RANGE,

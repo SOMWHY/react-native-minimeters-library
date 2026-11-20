@@ -309,8 +309,8 @@ test('a drag displaces the occupant instead of swapping shapes', () => {
 });
 
 test('a drag clamps its target inside the grid', () => {
-  // Two modules, so the clamped column is observable: with gravity fill a lone
-  // module would always compact back to column 0.
+  // Two modules so the clamped column is observable: clamping is a property of
+  // the move itself, not of any compaction pass.
   const items = [item('a', 0, 0, 1, 1), item('b', 0, 1, 1, 1)];
 
   const moved = mutate.moveItem(items, 'b', { col: 9, row: -3 }, CONFIG);
@@ -368,6 +368,58 @@ test('a resize pushes displaced neighbours down and stays overlap-free', () => {
   });
   assert.equal(placementOf(resized, 'b').row, 1);
   assertNoOverlap(resized, 'resize');
+});
+
+test('a drag keeps the hole it vacated open', () => {
+  const items = [
+    item('a', 0, 0, 1, 1),
+    item('b', 1, 0, 1, 1),
+    item('c', 0, 1, 1, 1),
+  ];
+
+  // 'a' leaves (0,0) empty. Compaction would pull 'c' up into it and shuffle the
+  // card the user just placed; a drop must keep its own placement.
+  const moved = mutate.moveItem(items, 'a', { col: 1, row: 1 }, CONFIG);
+
+  assert.deepEqual(placementOf(moved, 'a'), {
+    col: 1,
+    row: 1,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assert.deepEqual(placementOf(moved, 'b'), {
+    col: 1,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assert.deepEqual(placementOf(moved, 'c'), {
+    col: 0,
+    row: 1,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assertNoOverlap(moved, 'drag hole');
+});
+
+test('a resize keeps the rows it freed open', () => {
+  const items = [item('a', 0, 0, 1, 2), item('b', 1, 0, 1, 1)];
+
+  const shrunk = mutate.resizeItem(items, 'a', { colSpan: 1, rowSpan: 1 }, CONFIG);
+
+  assert.deepEqual(placementOf(shrunk, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assert.deepEqual(placementOf(shrunk, 'b'), {
+    col: 1,
+    row: 0,
+    colSpan: 1,
+    rowSpan: 1,
+  });
+  assertNoOverlap(shrunk, 'resize hole');
 });
 
 test('hiding keeps the item and its placement, and compacts the rest', () => {
@@ -759,4 +811,51 @@ test('the tray renders nothing when no module is hidden', () => {
   assert.match(tray, /hidden\.length === 0/);
   assert.match(tray, /accessibilityLabel/);
   assert.match(tray, /onRestore/);
+});
+
+// --- hold-to-drag arming -----------------------------------------------------
+
+const dragArm = require('../dist/dashboard/drag-arm');
+
+test('a hold arms the drag only after the threshold', () => {
+  assert.equal(
+    dragArm.shouldArmDrag(dragArm.DRAG_HOLD_MS - 1, 0),
+    false,
+    'a tap-length press must not arm',
+  );
+  assert.equal(dragArm.shouldArmDrag(dragArm.DRAG_HOLD_MS, 0), true);
+});
+
+test('a hold that drifted is a scroll, not a drag', () => {
+  assert.equal(
+    dragArm.shouldArmDrag(dragArm.DRAG_HOLD_MS, dragArm.DRAG_CANCEL_DISTANCE),
+    true,
+    'drifting exactly to the slop is still a hold',
+  );
+  assert.equal(
+    dragArm.shouldArmDrag(
+      dragArm.DRAG_HOLD_MS,
+      dragArm.DRAG_CANCEL_DISTANCE + 1,
+    ),
+    false,
+  );
+});
+
+test('drift beyond the slop cancels a pending arm', () => {
+  assert.equal(dragArm.shouldCancelArm(dragArm.DRAG_CANCEL_DISTANCE), false);
+  assert.equal(dragArm.shouldCancelArm(dragArm.DRAG_CANCEL_DISTANCE + 0.5), true);
+});
+
+test('the drag surface covers the whole card', () => {
+  const card = require('node:fs').readFileSync(
+    path.join(ROOT, 'dist', 'dashboard', 'ModuleCard.js'),
+    'utf8',
+  );
+
+  // No grab bar: the card itself carries the responders, so any point drags.
+  assert.doesNotMatch(card, /grabBar/);
+  assert.match(card, /dragHandlers/);
+  // The resize corner clears the 48dp touch-target floor with its slop.
+  assert.match(card, /RESIZE_HANDLE = 32/);
+  assert.match(card, /RESIZE_HIT_SLOP = 8/);
 });

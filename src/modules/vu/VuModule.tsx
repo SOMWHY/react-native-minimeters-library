@@ -15,7 +15,6 @@ import { ModuleSurface } from '../ModuleSurface';
 import type { ModuleBaseProps } from '../types';
 import { resolveVuState, type VuLevels } from './state';
 
-const DEFAULT_LABEL = 'VU';
 
 export interface VuModuleProps extends ModuleBaseProps {
   /** Normalized `0..1` levels; absence renders the `waiting` state. */
@@ -109,7 +108,7 @@ function VuLabels({ color }: { color: string }) {
 export function VuModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   data,
 }: VuModuleProps) {

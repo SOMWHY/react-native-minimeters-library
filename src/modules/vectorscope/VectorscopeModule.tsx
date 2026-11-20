@@ -10,7 +10,6 @@ import { resolveVectorscopeState } from './state';
 
 const STEREO_DOMAIN: NumericRange = [-1, 1];
 const DEFAULT_POINTS = 256;
-const DEFAULT_LABEL = 'VECTORSCOPE';
 
 export interface VectorscopeModuleProps extends ModuleBaseProps {
   /** Interleaved stereo PCM block; absence renders the `waiting` state. */
@@ -74,7 +73,7 @@ function VectorscopePlot({ block, points }: VectorscopePlotProps) {
 export function VectorscopeModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   block,
   points = DEFAULT_POINTS,

@@ -108,7 +108,18 @@ export function VisualizationCanvas({
   return (
     <View style={style ?? styles.fill} onLayout={handleLayout} testID={testID}>
       {isCanvasReady(width, height) ? (
-        <Canvas style={StyleSheet.absoluteFill}>
+        <Canvas
+          style={StyleSheet.absoluteFill}
+          /*
+           * Android draws into a `SurfaceView` by default. That surface is a
+           * separate window layer composited *above* the React Native view
+           * hierarchy, so a scroll container underneath it never receives the
+           * vertical swipes that start on a plot. `TextureView` renders through the
+           * normal view tree and keeps the gesture path intact; the extra copy is
+           * the price of a dashboard that scrolls.
+           */
+          android={{ surfaceType: 'TextureView' }}
+        >
           <Rect
             x={0}
             y={0}

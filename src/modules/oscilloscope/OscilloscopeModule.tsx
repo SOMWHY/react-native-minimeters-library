@@ -10,7 +10,6 @@ import { resolveOscilloscopeState } from './state';
 
 const AMPLITUDE_DOMAIN: NumericRange = [-1, 1];
 const DEFAULT_POINTS = 128;
-const DEFAULT_LABEL = 'OSCILLOSCOPE';
 
 export interface OscilloscopeModuleProps extends ModuleBaseProps {
   /** Interleaved PCM block; absence renders the `waiting` state. */
@@ -80,7 +79,7 @@ function OscilloscopePlot({ block, channel, points }: OscilloscopePlotProps) {
 export function OscilloscopeModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   block,
   channel = 0,

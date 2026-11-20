@@ -138,6 +138,10 @@ function withPosition(
 /**
  * Drag result: the moved item wins its target cell and everything it lands on is
  * pushed down. A drag is a placement intent, so shapes never swap.
+ *
+ * The grid is deliberately **not** compacted: a drop is a placement the user just
+ * chose, and closing the gap it left behind would shuffle every card below it out
+ * from under the finger. Compaction belongs to visibility changes and resets.
  */
 export function moveItem(
   items: readonly DashboardItem[],
@@ -151,10 +155,15 @@ export function moveItem(
     item.id === id && item.visible ? withPosition(item, target, config) : item,
   );
 
-  return compact(resolveOverlaps(next, config.columns, id), config);
+  return resolveOverlaps(next, config.columns, id);
 }
 
-/** Resize result: spans clamp to the configured limits, then the grid compacts. */
+/**
+ * Resize result: spans clamp to the configured limits.
+ *
+ * Like a drag, a resize keeps its hole open — the card the user just widened
+ * should not also be teleported upward by a compaction pass.
+ */
 export function resizeItem(
   items: readonly DashboardItem[],
   id: string,
@@ -167,7 +176,7 @@ export function resizeItem(
     item.id === id && item.visible ? withSpan(item, span, config) : item,
   );
 
-  return compact(resolveOverlaps(next, config.columns, id), config);
+  return resolveOverlaps(next, config.columns, id);
 }
 
 /**

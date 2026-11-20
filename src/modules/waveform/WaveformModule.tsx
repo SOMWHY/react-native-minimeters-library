@@ -10,7 +10,6 @@ import { resolveWaveformState } from './state';
 
 const AMPLITUDE_DOMAIN: NumericRange = [-1, 1];
 const DEFAULT_COLUMNS = 96;
-const DEFAULT_LABEL = 'WAVEFORM';
 
 export interface WaveformModuleProps extends ModuleBaseProps {
   /** Interleaved PCM block; absence renders the `waiting` state. */
@@ -84,7 +83,7 @@ function WaveformPlot({ block, channel, columns }: WaveformPlotProps) {
 export function WaveformModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   block,
   channel = 0,

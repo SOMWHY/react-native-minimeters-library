@@ -1,7 +1,8 @@
-import { PanResponder } from 'react-native';
-import { useMemo, useState } from 'react';
+import { Animated, PanResponder } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 
+import { DRAG_HOLD_MS, shouldArmDrag, shouldCancelArm } from './drag-arm';
 import { ModuleCard } from './ModuleCard';
 import { dragDeltaToCells, resizeDeltaToSpans } from './gestures';
 import type { CellTarget, SpanTarget } from './gestures';
@@ -27,22 +28,46 @@ export interface DraggableCardProps {
   readonly onResizeEnd: (target: SpanTarget) => void;
   /** Called when the host should hide the module (edit mode only). */
   readonly onHide: () => void;
+  /**
+   * Reports whether a drag or resize is in flight, so a host scroll container can
+   * stop scrolling for the duration and stop fighting the gesture.
+   */
+  readonly onGestureStateChange?: (active: boolean) => void;
   readonly children: ReactNode;
 }
 
-/** Below this many pixels a touch is a tap, not a drag. */
-const DRAG_THRESHOLD = 2;
+/**
+ * The smallest card a resize preview may collapse to, in dp.
+ *
+ * Mirrors the corner touch target: a preview smaller than this is neither usable
+ * nor a truthful preview of the cell the card will snap into.
+ */
+const MIN_PREVIEW_SIZE = 32;
 
-const NO_OFFSET = { dx: 0, dy: 0 };
-const NO_SIZE = { dw: 0, dh: 0 };
+interface LatestValues {
+  readonly cellWidth: number;
+  readonly config: GridConfig;
+  readonly metrics: GridMetrics;
+  readonly item: DashboardItem;
+  readonly rect: CellRect;
+  readonly onDragEnd: (target: CellTarget) => void;
+  readonly onResizeEnd: (target: SpanTarget) => void;
+  readonly onGestureStateChange?: (active: boolean) => void;
+}
 
 /**
  * A card plus its drag and resize gestures.
  *
- * Mid-gesture the card follows the finger through a transform (drag) or a pixel
- * size delta (resize); the layout array is untouched until release, so
- * `onLayoutChange` stays a settled event the host can persist. Outside edit mode
- * no responder is created at all.
+ * Both responders are created **once** per edit session and read their inputs from
+ * a ref, because the host re-renders this card on every incoming frame: a responder
+ * rebuilt mid-gesture is a responder React Native then loses track of, which is
+ * exactly what made dragging feel unreliable.
+ *
+ * Mid-gesture feedback runs through `Animated.Value`s, so the card tracks the
+ * finger without re-rendering the module it wraps. The layout array is untouched
+ * until release, so `onLayoutChange` stays a settled event the host can persist.
+ *
+ * Outside edit mode no responder is created at all.
  */
 export function DraggableCard({
   item,
@@ -55,10 +80,96 @@ export function DraggableCard({
   onDragEnd,
   onResizeEnd,
   onHide,
+  onGestureStateChange,
   children,
 }: DraggableCardProps) {
-  const [offset, setOffset] = useState(NO_OFFSET);
-  const [sizeDelta, setSizeDelta] = useState(NO_SIZE);
+  const latest = useRef<LatestValues>({
+    cellWidth,
+    config,
+    metrics,
+    item,
+    rect,
+    onDragEnd,
+    onResizeEnd,
+    onGestureStateChange,
+  });
+
+  useEffect(() => {
+    latest.current = {
+      cellWidth,
+      config,
+      metrics,
+      item,
+      rect,
+      onDragEnd,
+      onResizeEnd,
+      onGestureStateChange,
+    };
+  });
+
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const width = useRef(new Animated.Value(Math.max(0, rect.width))).current;
+  const height = useRef(new Animated.Value(Math.max(0, rect.height))).current;
+
+  /** Committed size, i.e. the base a resize preview is measured from. */
+  const baseSize = useRef({ width: rect.width, height: rect.height });
+
+  useEffect(() => {
+    baseSize.current = { width: rect.width, height: rect.height };
+    width.setValue(Math.max(0, rect.width));
+    height.setValue(Math.max(0, rect.height));
+  }, [height, rect.height, rect.width, width]);
+
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armed = useRef(false);
+  const moved = useRef(0);
+
+  const clearHold = useCallback(() => {
+    if (holdTimer.current !== null) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+
+    armed.current = false;
+  }, []);
+
+  const startHold = useCallback(() => {
+    clearHold();
+    moved.current = 0;
+    holdTimer.current = setTimeout(() => {
+      holdTimer.current = null;
+
+      if (shouldArmDrag(DRAG_HOLD_MS, moved.current)) {
+        armed.current = true;
+      }
+    }, DRAG_HOLD_MS);
+  }, [clearHold]);
+
+  /** Track drift so a swipe never arms the drag under the scroll view's feet. */
+  const trackDrift = useCallback(
+    (dx: number, dy: number) => {
+      moved.current = Math.max(Math.abs(dx), Math.abs(dy));
+
+      if (shouldCancelArm(moved.current)) {
+        clearHold();
+      }
+    },
+    [clearHold],
+  );
+
+  const notifyGesture = useCallback((active: boolean) => {
+    latest.current.onGestureStateChange?.(active);
+  }, []);
+
+  // Leaving edit mode mid-gesture must not leave a card stuck under the finger.
+  useEffect(() => {
+    if (!editing) {
+      clearHold();
+      translateX.setValue(0);
+      translateY.setValue(0);
+    }
+  }, [clearHold, editing, translateX, translateY]);
 
   const dragResponder = useMemo(() => {
     if (!editing) {
@@ -66,44 +177,57 @@ export function DraggableCard({
     }
 
     return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_event, gesture) =>
-        Math.abs(gesture.dx) > DRAG_THRESHOLD ||
-        Math.abs(gesture.dy) > DRAG_THRESHOLD,
+      // A touch is never claimed on contact: taps have to reach the hide button,
+      // and swipes have to reach the scroll view.
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: (_event, gesture) => {
+        trackDrift(gesture.dx, gesture.dy);
+        return armed.current;
+      },
+      onMoveShouldSetPanResponderCapture: (_event, gesture) => {
+        trackDrift(gesture.dx, gesture.dy);
+        return armed.current;
+      },
       onPanResponderGrant: () => {
-        setOffset(NO_OFFSET);
+        notifyGesture(true);
+        translateX.setValue(0);
+        translateY.setValue(0);
       },
       onPanResponderMove: (_event, gesture) => {
-        setOffset({ dx: gesture.dx, dy: gesture.dy });
+        translateX.setValue(gesture.dx);
+        translateY.setValue(gesture.dy);
       },
       onPanResponderRelease: (_event, gesture) => {
-        setOffset(NO_OFFSET);
-        onDragEnd(
+        const values = latest.current;
+
+        clearHold();
+        notifyGesture(false);
+        translateX.setValue(0);
+        translateY.setValue(0);
+
+        values.onDragEnd(
           dragDeltaToCells(
             { dx: gesture.dx, dy: gesture.dy },
             {
-              cellWidth,
-              rowHeight: metrics.rowHeight,
-              gap: metrics.gap,
-              columns: config.columns,
-              placement: item.placement,
+              cellWidth: values.cellWidth,
+              rowHeight: values.metrics.rowHeight,
+              gap: values.metrics.gap,
+              columns: values.config.columns,
+              placement: values.item.placement,
             },
           ),
         );
       },
       onPanResponderTerminate: () => {
-        setOffset(NO_OFFSET);
+        clearHold();
+        notifyGesture(false);
+        translateX.setValue(0);
+        translateY.setValue(0);
       },
+      onPanResponderTerminationRequest: () => false,
     });
-  }, [
-    cellWidth,
-    config.columns,
-    editing,
-    item.placement,
-    metrics.gap,
-    metrics.rowHeight,
-    onDragEnd,
-  ]);
+  }, [clearHold, editing, notifyGesture, trackDrift, translateX, translateY]);
 
   const resizeResponder = useMemo(() => {
     if (!editing) {
@@ -111,51 +235,71 @@ export function DraggableCard({
     }
 
     return PanResponder.create({
+      // The corner is a dedicated target, so it can claim on contact.
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_event, gesture) =>
-        Math.abs(gesture.dx) > DRAG_THRESHOLD ||
-        Math.abs(gesture.dy) > DRAG_THRESHOLD,
       onPanResponderGrant: () => {
-        setSizeDelta(NO_SIZE);
+        notifyGesture(true);
+        moved.current = 0;
       },
       onPanResponderMove: (_event, gesture) => {
-        // Never preview a card smaller than a touch target.
-        setSizeDelta({
-          dw: Math.max(-rect.width + 32, gesture.dx),
-          dh: Math.max(-rect.height + 32, gesture.dy),
-        });
+        width.setValue(
+          Math.max(MIN_PREVIEW_SIZE, baseSize.current.width + gesture.dx),
+        );
+        height.setValue(
+          Math.max(MIN_PREVIEW_SIZE, baseSize.current.height + gesture.dy),
+        );
       },
       onPanResponderRelease: (_event, gesture) => {
-        setSizeDelta(NO_SIZE);
-        onResizeEnd(
+        const values = latest.current;
+
+        notifyGesture(false);
+        width.setValue(Math.max(0, values.rect.width));
+        height.setValue(Math.max(0, values.rect.height));
+
+        values.onResizeEnd(
           resizeDeltaToSpans(
             { dx: gesture.dx, dy: gesture.dy },
             {
-              cellWidth,
-              rowHeight: metrics.rowHeight,
-              gap: metrics.gap,
-              columns: config.columns,
-              placement: item.placement,
-              config,
+              cellWidth: values.cellWidth,
+              rowHeight: values.metrics.rowHeight,
+              gap: values.metrics.gap,
+              columns: values.config.columns,
+              placement: values.item.placement,
+              config: values.config,
             },
           ),
         );
       },
       onPanResponderTerminate: () => {
-        setSizeDelta(NO_SIZE);
+        const values = latest.current;
+
+        notifyGesture(false);
+        width.setValue(Math.max(0, values.rect.width));
+        height.setValue(Math.max(0, values.rect.height));
       },
+      onPanResponderTerminationRequest: () => false,
     });
-  }, [
-    cellWidth,
-    config,
-    editing,
-    item.placement,
-    metrics.gap,
-    metrics.rowHeight,
-    onResizeEnd,
-    rect.height,
-    rect.width,
-  ]);
+  }, [editing, height, notifyGesture, width]);
+
+  const holdHandlers = useMemo(() => {
+    if (!editing) {
+      return undefined;
+    }
+
+    return {
+      onTouchStart: startHold,
+      onTouchEnd: clearHold,
+      onTouchCancel: clearHold,
+    };
+  }, [clearHold, editing, startHold]);
+
+  const dragHandlers = useMemo(() => {
+    if (dragResponder === null) {
+      return undefined;
+    }
+
+    return { ...holdHandlers, ...dragResponder.panHandlers };
+  }, [dragResponder, holdHandlers]);
 
   return (
     <ModuleCard
@@ -164,10 +308,9 @@ export function DraggableCard({
       editing={editing}
       rect={rect}
       onHide={onHide}
-      dragHandlers={dragResponder?.panHandlers}
+      dragHandlers={dragHandlers}
       resizeHandlers={resizeResponder?.panHandlers}
-      offset={offset}
-      sizeDelta={sizeDelta}
+      animated={{ translateX, translateY, width, height }}
     >
       {children}
     </ModuleCard>

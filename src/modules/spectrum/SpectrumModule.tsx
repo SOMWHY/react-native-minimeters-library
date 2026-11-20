@@ -10,7 +10,6 @@ import type { ModuleBaseProps } from '../types';
 import { resolveSpectrumState } from './state';
 
 const UNIT_DOMAIN: NumericRange = [0, 1];
-const DEFAULT_LABEL = 'SPECTRUM';
 
 export interface SpectrumModuleProps extends ModuleBaseProps {
   /** Magnitude bins in dB, prepared by the host application. */
@@ -83,7 +82,7 @@ function SpectrumPlot({ bins, dbRange }: SpectrumPlotProps) {
 export function SpectrumModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   bins,
   dbRange = DEFAULT_DB_RANGE,

@@ -17,7 +17,6 @@ import {
 import { resolveSpectrogramState } from './state';
 
 const DEFAULT_MAX_ROWS = 96;
-const DEFAULT_LABEL = 'SPECTROGRAM';
 
 /**
  * Last-resort ramp for a theme whose trace colors cannot be parsed as hex.
@@ -78,7 +77,7 @@ function SpectrogramPlot({ rows, maxRows, ramp }: SpectrogramPlotProps) {
 export function SpectrogramModule({
   theme,
   height,
-  label = DEFAULT_LABEL,
+  label,
   style,
   rows,
   maxRows = DEFAULT_MAX_ROWS,

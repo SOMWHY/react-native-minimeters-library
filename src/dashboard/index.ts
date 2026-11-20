@@ -21,6 +21,13 @@ export {
 export { DashboardGrid } from './DashboardGrid';
 export type { DashboardGridProps } from './DashboardGrid';
 export { ModuleCard } from './ModuleCard';
+export type { ModuleCardAnimation, ModuleCardDragHandlers } from './ModuleCard';
+export {
+  DRAG_CANCEL_DISTANCE,
+  DRAG_HOLD_MS,
+  shouldArmDrag,
+  shouldCancelArm,
+} from './drag-arm';
 export { ModuleTray } from './ModuleTray';
 export type { ModuleTrayProps } from './ModuleTray';
 export type { ModuleCardProps } from './ModuleCard';

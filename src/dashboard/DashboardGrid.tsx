@@ -29,6 +29,14 @@ export interface DashboardGridProps {
    */
   readonly renderModule: (item: DashboardItem, rect: CellRect) => ReactNode;
   readonly onLayoutChange: (layout: DashboardLayout) => void;
+  /**
+   * Reports whether a card drag or resize is in flight.
+   *
+   * Hosts that mount the grid inside a scroll container should freeze scrolling
+   * while this is true: on Android the native scroll interceptor otherwise steals
+   * the gesture out from under the card.
+   */
+  readonly onGestureStateChange?: (active: boolean) => void;
   /** Test hook for hosts and their integration tests; forwarded to the container. */
   readonly testID?: string;
   readonly style?: StyleProp<ViewStyle>;
@@ -49,6 +57,7 @@ export function DashboardGrid({
   editing = false,
   renderModule,
   onLayoutChange,
+  onGestureStateChange,
   testID,
   style,
 }: DashboardGridProps) {
@@ -116,6 +125,7 @@ export function DashboardGrid({
               onDragEnd={(target) => handleDragEnd(item.id, target)}
               onResizeEnd={(target) => handleResizeEnd(item.id, target)}
               onHide={() => handleHide(item.id)}
+              onGestureStateChange={onGestureStateChange}
             >
               {renderModule(item, rect)}
             </DraggableCard>
