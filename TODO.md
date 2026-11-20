@@ -49,6 +49,7 @@
 - [x] Phase 5 step 1: Host integration (`docs/superpowers/plans/2026-11-20-phase-5-host-dashboard.md`) — library `renderModule` rect, host grid model, layout/theme persistence, PCM adapter seam, shared connection provider, dashboard screen, diagnostics tab.
 - [x] Phase 5 step 2: Host analysis engine (FFT bins, RMS/peak/LUFS, VU ballistics, spectrogram history) so the four waiting modules light up. Loudness is momentary K-weighted LUFS over a 400 ms window; VU uses 20 ms attack / 260 ms release with a 1.2 s peak hold.
 - [x] Meter fidelity pass: VU bars rescaled to dB, loudness windows split into momentary / short-term / integrated, spectrogram window tied to the poll cadence.
+- [x] `meterRowBounds()` in `src/modules/display.ts`: stacked-meter geometry that shares the inset grid with the label overlay, so a bar and its label never drift apart (used by `LoudnessModule`).
 - [x] Interaction pass: hold-to-drag on the whole card (no grab bar), thumb-sized resize grip, no auto-compaction after a move, single card title, canvas backed by a `TextureView` on Android, and a host layout that rotates without reloading from storage.
 - [ ] Phase 5 acceptance: device run in portrait and landscape (pairing, drag/resize/hide/restore, theme switch, rotation 2↔4 columns, relaunch restore, reset). The host now allows both orientations (`app.json` `"orientation": "default"`), so a device pass has to confirm the re-fit and persistence paths.
 
