@@ -5,14 +5,32 @@ import { useDrawingContext } from '../../drawing';
 import type { NumericRange } from '../../drawing';
 import { toEnvelopeColumns } from '../display';
 import { ModuleSurface } from '../ModuleSurface';
-import type { ModuleBaseProps, PcmBlock } from '../types';
+import type {
+  EnvelopeColumns,
+  ModuleBaseProps,
+  PcmBlock,
+} from '../types';
+import { envelopeFromFrames } from './history';
 import { resolveWaveformState } from './state';
 
 const AMPLITUDE_DOMAIN: NumericRange = [-1, 1];
 const DEFAULT_COLUMNS = 96;
 
+/** How the module is fed: a block is one instant, a frame list is a history. */
+type WaveformSource =
+  | { readonly kind: 'history'; readonly frames: readonly PcmBlock[] }
+  | { readonly kind: 'block'; readonly block: PcmBlock };
+
 export interface WaveformModuleProps extends ModuleBaseProps {
-  /** Interleaved PCM block; absence renders the `waiting` state. */
+  /**
+   * Chronological blocks (oldest first) drawn as a peak envelope over time.
+   * Preferred over `block` when both are given — this is the "waveform" view.
+   */
+  readonly frames?: readonly PcmBlock[] | null;
+  /**
+   * Single interleaved PCM block. Only used when no `frames` history is
+   * supplied; on its own this draws one instant, like an oscilloscope.
+   */
   readonly block?: PcmBlock | null;
   /** Channel index to plot. */
   readonly channel?: number;
@@ -21,8 +39,7 @@ export interface WaveformModuleProps extends ModuleBaseProps {
 }
 
 interface WaveformPlotProps {
-  readonly block: PcmBlock;
-  readonly channel: number;
+  readonly envelope: EnvelopeColumns;
   readonly columns: number;
 }
 
@@ -33,11 +50,11 @@ interface WaveformPlotProps {
  * `[-1, 1]` domain up the context's reversed Y axis, so the band stays aligned
  * with the shared grid at any measured size.
  */
-function WaveformPlot({ block, channel, columns }: WaveformPlotProps) {
+function WaveformPlot({ envelope, columns }: WaveformPlotProps) {
   const { colors, mapX, mapY, tokens, width } = useDrawingContext();
 
   const bandPath = useMemo(() => {
-    const { min, max } = toEnvelopeColumns(block, columns, channel);
+    const { min, max } = envelope;
     const domain: NumericRange = [0, columns];
     const builder = Skia.PathBuilder.Make();
 
@@ -62,7 +79,7 @@ function WaveformPlot({ block, channel, columns }: WaveformPlotProps) {
     builder.close();
 
     return builder.build();
-  }, [block, channel, columns, mapX, mapY]);
+  }, [envelope, columns, mapX, mapY]);
 
   const zeroAxisY = mapY(0, AMPLITUDE_DOMAIN);
 
@@ -79,18 +96,47 @@ function WaveformPlot({ block, channel, columns }: WaveformPlotProps) {
   );
 }
 
-/** Peak-envelope waveform module. */
+function resolveSource(
+  frames: readonly PcmBlock[] | null | undefined,
+  block: PcmBlock | null | undefined,
+): WaveformSource | null {
+  if (frames && frames.length > 0) {
+    return { kind: 'history', frames };
+  }
+
+  return block ? { kind: 'block', block } : null;
+}
+
+/**
+ * Peak-envelope waveform module.
+ *
+ * Pass `frames` for the module's real job — a scrolling picture of the last
+ * `WAVEFORM_HISTORY_SECONDS` of audio — or a single `block` for a one-shot
+ * envelope of that block.
+ */
 export function WaveformModule({
   theme,
   height,
   label,
   style,
+  frames,
   block,
   channel = 0,
   columns = DEFAULT_COLUMNS,
 }: WaveformModuleProps) {
-  const status = resolveWaveformState(block);
+  const status = resolveWaveformState(block, frames);
   const resolvedColumns = Math.max(1, Math.floor(columns) || DEFAULT_COLUMNS);
+  const source = resolveSource(frames, block);
+
+  const envelope = useMemo(() => {
+    if (source === null) {
+      return null;
+    }
+
+    return source.kind === 'history'
+      ? envelopeFromFrames(source.frames, resolvedColumns, channel)
+      : toEnvelopeColumns(source.block, resolvedColumns, channel);
+  }, [source, resolvedColumns, channel]);
 
   return (
     <ModuleSurface
@@ -100,12 +146,8 @@ export function WaveformModule({
       label={label}
       style={style}
     >
-      {block === null || block === undefined ? null : (
-        <WaveformPlot
-          block={block}
-          channel={channel}
-          columns={resolvedColumns}
-        />
+      {envelope === null ? null : (
+        <WaveformPlot envelope={envelope} columns={resolvedColumns} />
       )}
     </ModuleSurface>
   );

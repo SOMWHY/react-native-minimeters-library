@@ -6,6 +6,7 @@ const { test } = require('node:test');
 // Modules are React Native components, so these tests load only the pure
 // display-preparation layer and assert the component files exist on disk.
 const display = require('../dist/modules/display');
+const waveHistory = require('../dist/modules/waveform/history');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -55,6 +56,56 @@ test('builds min/max envelope columns for the selected channel', () => {
     Array.from(display.toEnvelopeColumns(stereoBlock, 4, 1).min),
     [0, -0.25, -0.5, 0],
   );
+});
+
+test('builds the waveform envelope across a block history, not one instant', () => {
+  const loud = {
+    samples: [0.8, 0.8, -0.8, -0.8, 0.8, 0.8, -0.8, -0.8],
+    channels: 2,
+    samplesPerChannel: 4,
+  };
+  const gap = {
+    samples: [0, 0, 0, 0, 0, 0, 0, 0],
+    channels: 2,
+    samplesPerChannel: 4,
+  };
+
+  // Two loud blocks and two gaps: the envelope must show both, in time order.
+  const { min, max } = waveHistory.envelopeFromFrames(
+    [loud, loud, gap, gap],
+    4,
+    0,
+  );
+
+  // Whole-block columns: ±0.8 then a flat gap at zero. Float32 storage, so
+  // compare rounded values rather than exact doubles.
+  const rounded = (values) => Array.from(values, (value) => Number(value.toFixed(3)));
+
+  assert.deepEqual(rounded(max), [0.8, 0.8, 0, 0]);
+  assert.deepEqual(rounded(min), [-0.8, -0.8, 0, 0]);
+});
+
+test('concatenates frames in order and keeps the right channel', () => {
+  const left = { samples: [1, -1, 1, -1], channels: 2, samplesPerChannel: 2 };
+  const right = { samples: [-1, 1, -1, 1], channels: 2, samplesPerChannel: 2 };
+
+  assert.deepEqual(
+    Array.from(waveHistory.envelopeFromFrames([left, right], 2, 0).max),
+    [1, -1],
+  );
+  assert.deepEqual(
+    Array.from(waveHistory.envelopeFromFrames([left, right], 2, 1).max),
+    [-1, 1],
+  );
+});
+
+test('an empty waveform history is a flat line, not an error', () => {
+  const { min, max } = waveHistory.envelopeFromFrames([], 8);
+
+  assert.equal(min.length, 8);
+  assertAllFinite(min, 'empty min');
+  assertAllFinite(max, 'empty max');
+  assert.equal(Math.max(...max), 0);
 });
 
 test('asks for more envelope columns than samples without losing count', () => {

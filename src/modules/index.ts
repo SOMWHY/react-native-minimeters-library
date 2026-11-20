@@ -63,6 +63,8 @@ export {
 export {
   WaveformModule,
   resolveWaveformState,
+  WAVEFORM_HISTORY_SECONDS,
+  envelopeFromFrames,
   type WaveformModuleProps,
 } from './waveform';
 

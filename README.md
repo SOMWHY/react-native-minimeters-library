@@ -88,7 +88,7 @@ application owns decoding, analysis, and history, and hands the module
 
 | Module | Props | Draws |
 | --- | --- | --- |
-| `WaveformModule` | `block`, `channel`, `columns` | Filled min/max envelope band plus the zero axis |
+| `WaveformModule` | `frames` (or `block`), `channel`, `columns` | Filled min/max envelope of the *recent past* plus the zero axis |
 | `OscilloscopeModule` | `block`, `channel`, `points` | Single decimated polyline over an opaque surface |
 | `VectorscopeModule` | `block`, `points` | Projected stereo dots with diagonal and mid-side axes |
 | `SpectrumModule` | `bins`, `dbRange` | Filled area under the normalized dB curve, `low`→`high` gradient |
@@ -103,12 +103,20 @@ dashboard card that already prints a title.
 ```tsx
 import { WaveformModule, BUILT_IN_THEMES } from '@minimetermobile/ui';
 
+// The waveform is a history view: hand it the last few seconds, oldest first.
 <WaveformModule
   theme={BUILT_IN_THEMES.midnight}
-  block={{ samples, channels: 2, samplesPerChannel: frames }}
+  frames={recentBlocks}
   height={160}
 />;
 ```
+
+`WaveformModule` takes `frames` — a chronological list of `PcmBlock`s covering
+`WAVEFORM_HISTORY_SECONDS` (3 s) — and draws one min/max column per time slice,
+which is what makes attacks, sustains and gaps visible. A single `block` is still
+accepted as a fallback, but on its own it draws one instant and is
+indistinguishable from `OscilloscopeModule`; that is why the two modules exist
+separately.
 
 ### Prepared-data boundary
 
