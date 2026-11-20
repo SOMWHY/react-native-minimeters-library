@@ -54,6 +54,17 @@ function resolveSampleCount(block: PcmBlock, channels: number): number {
   return Math.min(declared, available);
 }
 
+/**
+ * Channel index clamped to the channels this block actually carries.
+ *
+ * Shared by the renderers and the trigger detector so both read the same
+ * channel: reading channel 2 of a stereo block would otherwise walk into the
+ * next frame's first channel.
+ */
+export function resolveChannelIndex(block: PcmBlock, channel: number): number {
+  return clampIndex(channel, resolveChannelCount(block) - 1);
+}
+
 function readSample(
   block: PcmBlock,
   channels: number,

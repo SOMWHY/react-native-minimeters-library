@@ -9,6 +9,7 @@ export {
   toEnvelopeColumns,
   toMeterScale,
   toStereoPoints,
+  resolveChannelIndex,
   toTraceSamples,
   type MeterRowBounds,
   type MeterRowOptions,

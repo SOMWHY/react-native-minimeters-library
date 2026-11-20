@@ -831,3 +831,65 @@ test('the spectrogram gamma lifts quiet cells without touching full scale', () =
   assert.equal(linear.bytes[ceilOffset], 224);
   assert.equal(curved.bytes[ceilOffset], 224);
 });
+
+test('trigger detection reads the same channel the trace draws', () => {
+  const { findTriggerIndex } = require('../dist/modules/oscilloscope/trigger');
+  const { toTraceSamples } = require('../dist/modules/display');
+
+  // Two channels 180 degrees apart, so reading the wrong one flips the phase.
+  const left = [];
+  const right = [];
+  for (let index = 0; index < 32; index += 1) {
+    left.push(Math.sin((2 * Math.PI * index) / 8));
+    right.push(-Math.sin((2 * Math.PI * index) / 8));
+  }
+  const interleaved = [];
+  for (let index = 0; index < 32; index += 1) {
+    interleaved.push(left[index], right[index]);
+  }
+  const block = {
+    samples: Float32Array.from(interleaved),
+    channels: 2,
+    samplesPerChannel: 32,
+  };
+
+  // Channel 2 does not exist on a stereo block: both readers clamp it to 1.
+  assert.equal(findTriggerIndex(block, 2), findTriggerIndex(block, 1));
+  assert.deepEqual(
+    Array.from(toTraceSamples(block, 4, 2)),
+    Array.from(toTraceSamples(block, 4, 1)),
+  );
+
+  // Fractional channels floor to the same index instead of reading between frames.
+  assert.equal(findTriggerIndex(block, 1.9), findTriggerIndex(block, 1));
+});
+
+test('a triggered trace keeps a fixed time scale', () => {
+  const { triggeredTraceSamples, rotateTrace } = require('../dist/modules/oscilloscope/trace');
+  const samples = [];
+  for (let index = 0; index < 64; index += 1) {
+    samples.push(Math.sin((2 * Math.PI * (index + 2)) / 8));
+  }
+  const block = mono(samples);
+
+  const free = triggeredTraceSamples(block, 16, 0, 'none');
+  const triggered = triggeredTraceSamples(block, 16, 0, 'rising');
+
+  // Same number of points, so the polyline spans the same horizontal domain
+  // whatever the trigger offset was.
+  assert.equal(free.length, 16);
+  assert.equal(triggered.length, 16);
+
+  // Rotating left by the trigger position puts the crossing first, and rotation
+  // only reorders: nothing is dropped or duplicated.
+  const shift = Math.round((7 / 64) * 16);
+  assert.deepEqual(Array.from(rotateTrace(free, shift)), Array.from(triggered));
+  assert.deepEqual(
+    Array.from(triggered).sort((a, b) => a - b),
+    Array.from(free).sort((a, b) => a - b),
+  );
+
+  // Rotation wraps around instead of padding.
+  assert.deepEqual(Array.from(rotateTrace(Float32Array.from([1, 2, 3]), -1)), [3, 1, 2]);
+  assert.deepEqual(Array.from(rotateTrace(Float32Array.from([1, 2, 3]), 3)), [1, 2, 3]);
+});

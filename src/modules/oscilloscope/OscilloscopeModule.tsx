@@ -3,11 +3,10 @@ import { useMemo } from 'react';
 
 import { useDrawingContext } from '../../drawing';
 import type { NumericRange } from '../../drawing';
-import { toTraceSamples } from '../display';
 import { ModuleSurface } from '../ModuleSurface';
 import type { ModuleBaseProps, PcmBlock } from '../types';
 import { resolveOscilloscopeState } from './state';
-import { findTriggerIndex } from './trigger';
+import { triggeredTraceSamples } from './trace';
 
 const AMPLITUDE_DOMAIN: NumericRange = [-1, 1];
 /** Points used only when there is no block to size the trace from. */
@@ -61,8 +60,7 @@ function OscilloscopePlot({
   const { colors, height, mapX, mapY, tokens, width } = useDrawingContext();
 
   const tracePath = useMemo(() => {
-    const offset = trigger === 'rising' ? findTriggerIndex(block, channel) : 0;
-    const trace = toTraceSamples(block, points, channel, offset);
+    const trace = triggeredTraceSamples(block, points, channel, trigger);
     const builder = Skia.PathBuilder.Make();
     const domain: NumericRange = [0, Math.max(1, trace.length - 1)];
 

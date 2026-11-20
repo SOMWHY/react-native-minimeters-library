@@ -1,3 +1,4 @@
+import { resolveChannelIndex } from '../display';
 import type { PcmBlock } from '../types';
 
 /**
@@ -30,8 +31,9 @@ export function findTriggerIndex(block: PcmBlock, channel = 0): number {
     1,
     Math.min(sampleCount - 1, Math.floor(sampleCount * SEARCH_FRACTION)),
   );
+  const safeChannel = resolveChannelIndex(block, channel);
   const read = (sampleIndex: number) => {
-    const value = Number(block.samples[sampleIndex * channels + channel]);
+    const value = Number(block.samples[sampleIndex * channels + safeChannel]);
 
     return Number.isFinite(value) ? value : 0;
   };
