@@ -75,3 +75,9 @@
 - `moveItem` and `resizeItem` no longer compact: a drag moves the card it touched and leaves every other card alone. `compact` stays public and is still applied by `setVisibility` and by explicit host calls.
 - The modules stopped defaulting their `label`. `ModuleCard` prints `label ?? id` once, so a dashboard card no longer shows two competing titles.
 - `VisualizationCanvas` provides the drawing context and mounts an Android `TextureView`; the `Canvas` sits inside it so `useDrawingContext` cannot run outside a provider when a card is animated.
+
+## Phase 6 — 仪表盘保真度（进行中）
+
+- 库 `@minimetermobile/ui@0.3.0`：示波器 `trigger`（默认在上升过零点对齐）+ `points` 默认取整帧采样数；VU `readout`；频谱 160 bin；声谱 `SPECTROGRAM_GAMMA = 0.75`；网格四角缩放把手。
+- 宿主：`ANALYSIS_BIN_COUNT` 64→160、显示窗口 -80 dB、`STREAM_REFRESH_MS` 100→33、声谱行数上限 120（4 s）、波形 120 列、静默频谱显示为 waiting、设置球拖动改为 `Animated.ValueXY`（拖动不再重渲染面板）。
+- 待办：按帧率切片（波形 20 Hz / 频谱 15 Hz / 表头 10 Hz）尚未实现，`engine.push` 仍按 33 ms 处理每帧；VU/LUFS 的 dB 域 24 dB/s 释放尚未实现（仍是毫秒指数弹道）；波形历史窗口仍为 3 s。
