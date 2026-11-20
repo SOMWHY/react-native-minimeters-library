@@ -1048,13 +1048,13 @@ test('corner handles tile a one-row card without overlapping', () => {
   const { cornerZones } = require('../dist/dashboard/gestures');
   const zones = cornerZones(360, 56);
 
-  // Half the card height each, so top and bottom never collide on a short card.
-  assert.deepEqual(zones['top-left'], { x: 0, y: 0, width: 64, height: 28 });
+  // A 56 dp card keeps a 32 dp centre strip, so each handle is (56 - 32) / 2.
+  assert.deepEqual(zones['top-left'], { x: 0, y: 0, width: 64, height: 12 });
   assert.deepEqual(zones['bottom-right'], {
     x: 296,
-    y: 28,
+    y: 44,
     width: 64,
-    height: 28,
+    height: 12,
   });
   assert.ok(zones['top-left'].y + zones['top-left'].height <= zones['bottom-left'].y);
   assert.ok(zones['top-left'].x + zones['top-left'].width <= zones['top-right'].x);
@@ -1065,5 +1065,22 @@ test('corner handle sizes cap out on a tall card', () => {
 
   assert.deepEqual(cornerZoneSize(600, 400), { width: 64, height: 40 });
   // A narrow card halves rather than overflowing.
-  assert.deepEqual(cornerZoneSize(80, 400), { width: 40, height: 40 });
+  assert.deepEqual(cornerZoneSize(80, 400), { width: 24, height: 40 });
+});
+
+test('corner handles leave a centre strip to drag on a compact card', () => {
+  const { cornerZoneSize, MIN_DRAG_ZONE } = require('../dist/dashboard/gestures');
+
+  // Two columns of 120x64 is the smallest card the phone layout produces.
+  const compact = cornerZoneSize(120, 64);
+
+  assert.ok(
+    compact.height * 2 <= 64 - MIN_DRAG_ZONE,
+    `top and bottom handles must not meet: ${compact.height * 2}`,
+  );
+  assert.ok(compact.width * 2 <= 120 - MIN_DRAG_ZONE);
+  assert.ok(compact.height > 0 && compact.width > 0);
+
+  // Cards too small for the reserve still get one-pixel handles, never negative.
+  assert.deepEqual(cornerZoneSize(20, 16), { width: 1, height: 1 });
 });

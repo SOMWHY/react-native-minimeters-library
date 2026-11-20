@@ -199,18 +199,37 @@ export const MAX_CORNER_WIDTH = 64;
 export const MAX_CORNER_HEIGHT = 40;
 
 /**
+ * Centre strip kept free of resize handles, in dp.
+ *
+ * Compact cards are only a few cells tall, so half-height handles would meet in
+ * the middle and there would be nowhere left to press and hold for a drag.
+ */
+export const MIN_DRAG_ZONE = 32;
+
+/**
  * Adaptive corner handle size: half the card, capped.
  *
- * Halving is what keeps the top and bottom handles from overlapping on a one-row
- * card, so every corner stays independently hittable.
+ * Halving keeps the top and bottom handles from overlapping on a one-row card,
+ * and the drag-zone reserve keeps a pressable strip between them, so a compact
+ * card can still be dragged as well as resized.
  */
 export function cornerZoneSize(
   cardWidth: number,
   cardHeight: number,
 ): CornerZoneSize {
   return {
-    width: Math.max(1, Math.min(cardWidth / 2, MAX_CORNER_WIDTH)),
-    height: Math.max(1, Math.min(cardHeight / 2, MAX_CORNER_HEIGHT)),
+    width: Math.max(
+      1,
+      Math.min(cardWidth / 2, MAX_CORNER_WIDTH, (cardWidth - MIN_DRAG_ZONE) / 2),
+    ),
+    height: Math.max(
+      1,
+      Math.min(
+        cardHeight / 2,
+        MAX_CORNER_HEIGHT,
+        (cardHeight - MIN_DRAG_ZONE) / 2,
+      ),
+    ),
   };
 }
 
