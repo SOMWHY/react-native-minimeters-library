@@ -25,6 +25,8 @@ export interface VisualizationCanvasProps {
   theme: VisualizationTheme;
   showGrid?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Test hook for the measured host view. */
+  testID?: string;
   children?: ReactNode;
 }
 
@@ -40,6 +42,7 @@ export function VisualizationCanvas({
   theme,
   showGrid = true,
   style,
+  testID = 'visualization-canvas',
   children,
 }: VisualizationCanvasProps) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -103,7 +106,7 @@ export function VisualizationCanvas({
   }, [height, showGrid, width]);
 
   return (
-    <View style={style} onLayout={handleLayout}>
+    <View style={style ?? styles.fill} onLayout={handleLayout} testID={testID}>
       {isCanvasReady(width, height) ? (
         <DrawingContext.Provider value={context}>
           <Canvas style={StyleSheet.absoluteFill}>
@@ -130,3 +133,14 @@ export function VisualizationCanvas({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  /**
+   * A caller that forgets to size the canvas would otherwise measure zero — the
+   * Skia canvas is absolutely positioned and contributes no layout of its own.
+   */
+  fill: {
+    flex: 1,
+    alignSelf: 'stretch',
+  },
+});

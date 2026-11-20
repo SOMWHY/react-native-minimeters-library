@@ -49,7 +49,7 @@ export function ModuleSurface({
 
   return (
     <View style={[styles.host, { height }, style]}>
-      <VisualizationCanvas theme={theme}>
+      <VisualizationCanvas theme={theme} style={StyleSheet.absoluteFill}>
         {status === 'ready' ? children : null}
       </VisualizationCanvas>
       <View style={styles.overlay} pointerEvents="none">
