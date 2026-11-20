@@ -108,27 +108,33 @@ export function VisualizationCanvas({
   return (
     <View style={style ?? styles.fill} onLayout={handleLayout} testID={testID}>
       {isCanvasReady(width, height) ? (
-        <DrawingContext.Provider value={context}>
-          <Canvas style={StyleSheet.absoluteFill}>
-            <Rect
-              x={0}
-              y={0}
-              width={width}
-              height={height}
-              color={colors.canvas}
+        <Canvas style={StyleSheet.absoluteFill}>
+          <Rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            color={colors.canvas}
+          />
+          {gridLines.map((line) => (
+            <Line
+              key={line.key}
+              p1={vec(line.p1.x, line.p1.y)}
+              p2={vec(line.p2.x, line.p2.y)}
+              color={colors.grid}
+              strokeWidth={line.strokeWidth}
             />
-            {gridLines.map((line) => (
-              <Line
-                key={line.key}
-                p1={vec(line.p1.x, line.p1.y)}
-                p2={vec(line.p2.x, line.p2.y)}
-                color={colors.grid}
-                strokeWidth={line.strokeWidth}
-              />
-            ))}
+          ))}
+          {/*
+           * The provider has to live *inside* the canvas: Skia renders the
+           * canvas children through its own reconciler root, and React context
+           * does not cross reconciler roots. Hoisting it above `Canvas` makes
+           * every module see a null context.
+           */}
+          <DrawingContext.Provider value={context}>
             {children}
-          </Canvas>
-        </DrawingContext.Provider>
+          </DrawingContext.Provider>
+        </Canvas>
       ) : null}
     </View>
   );
