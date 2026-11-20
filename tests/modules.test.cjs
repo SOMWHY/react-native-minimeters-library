@@ -893,3 +893,47 @@ test('a triggered trace keeps a fixed time scale', () => {
   assert.deepEqual(Array.from(rotateTrace(Float32Array.from([1, 2, 3]), -1)), [3, 1, 2]);
   assert.deepEqual(Array.from(rotateTrace(Float32Array.from([1, 2, 3]), 3)), [1, 2, 3]);
 });
+
+// --- spectrogram ramp ----------------------------------------------------
+
+test('the spectrogram ramp starts at the card surface', () => {
+  const { buildSpectrogramRamp } =
+    require('../dist/modules/spectrogram/ramp');
+  const { toSpectrogramPixels } = require('../dist/modules/spectrogram/pixels');
+
+  const ramp = buildSpectrogramRamp({
+    surface: '#10131E',
+    low: '#6366F1',
+    mid: '#D946EF',
+    high: '#F97316',
+  });
+
+  // Silence is the fourth-stop-free case: surface, then the three trace tones.
+  assert.equal(ramp.length, 4);
+  assert.deepEqual(Array.from(ramp[0]), [16, 19, 30]);
+
+  // One column, three bins: bin 0 is silence, bin 2 is full scale.
+  const raster = toSpectrogramPixels([[0, 0.5, 1]], 1, ramp);
+
+  // Bin 0 lands in the last pixel row, full scale in the first.
+  assert.deepEqual(Array.from(raster.bytes.slice(8, 11)), [16, 19, 30]);
+  assert.deepEqual(Array.from(raster.bytes.slice(0, 3)), [249, 115, 22]);
+});
+
+test('an unparseable surface falls back instead of painting the traces as background', () => {
+  const { buildSpectrogramRamp, FALLBACK_RAMP } =
+    require('../dist/modules/spectrogram/ramp');
+
+  // Without a usable surface the low trace tone would become the background,
+  // which is exactly the mismatch this ramp exists to remove.
+  assert.deepEqual(
+    Array.from(buildSpectrogramRamp({ surface: 'nope', low: '#6366F1', mid: '#D946EF', high: '#F97316' })),
+    Array.from(FALLBACK_RAMP),
+  );
+
+  // Trace tones are optional: a surface alone still yields a ramp.
+  assert.deepEqual(
+    Array.from(buildSpectrogramRamp({ surface: '#10131E', low: 'bad', mid: 'bad', high: 'bad' })),
+    Array.from(FALLBACK_RAMP),
+  );
+});

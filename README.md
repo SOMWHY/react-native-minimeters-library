@@ -231,6 +231,14 @@ Every module classifies its input before drawing and never invents data:
   `samplesPerChannel`, a mono block handed to the vectorscope, an inverted dB
   window, ragged spectrogram rows). The surface shows `INVALID DATA`.
 
+The spectrogram is the one module that draws an opaque image instead of
+transparent traces, so its colour ramp starts at `colors.surface`: stop 0 is
+silence, and the three trace tones follow. That keeps a quiet spectrogram card
+indistinguishable from an empty one, instead of painting the whole body in
+`traces.low` the way a ramp built only from trace colours does.
+`buildSpectrogramRamp` builds it and falls back to a neutral grey ramp when the
+theme colours are not plain hex.
+
 Out-of-range values that are still meaningful are clamped rather than rejected:
 VU levels above `1` clamp to full scale, and dB values outside `dbRange` clamp to
 the meter ends. `ModuleSurface` renders the shared shell (host view, single

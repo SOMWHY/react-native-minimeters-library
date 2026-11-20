@@ -9,26 +9,11 @@ import { useMemo } from 'react';
 import { useDrawingContext } from '../../drawing';
 import { ModuleSurface } from '../ModuleSurface';
 import type { ModuleBaseProps } from '../types';
-import {
-  parseHexColor,
-  SPECTROGRAM_GAMMA,
-  toSpectrogramPixels,
-  type RgbTriple,
-} from './pixels';
+import { SPECTROGRAM_GAMMA, toSpectrogramPixels, type RgbTriple } from './pixels';
+import { buildSpectrogramRamp } from './ramp';
 import { resolveSpectrogramState } from './state';
 
 const DEFAULT_MAX_ROWS = 128;
-
-/**
- * Last-resort ramp for a theme whose trace colors cannot be parsed as hex.
- * A spectrogram without a gradient is still readable; throwing during render is
- * not an option inside a canvas.
- */
-const FALLBACK_RAMP: ReadonlyArray<RgbTriple> = [
-  [0, 0, 0],
-  [128, 128, 128],
-  [255, 255, 255],
-];
 
 export interface SpectrogramModuleProps extends ModuleBaseProps {
   /** Normalized history rows (`0..1`), oldest first; absence renders `waiting`. */
@@ -86,21 +71,21 @@ export function SpectrogramModule({
   const status = resolveSpectrogramState(rows);
   const resolvedMaxRows = Math.max(1, Math.floor(maxRows) || DEFAULT_MAX_ROWS);
 
-  const ramp = useMemo<ReadonlyArray<RgbTriple>>(() => {
-    const stops = [
+  const ramp = useMemo<ReadonlyArray<RgbTriple>>(
+    () =>
+      buildSpectrogramRamp({
+        surface: theme.colors.surface,
+        low: theme.colors.traces.low,
+        mid: theme.colors.traces.mid,
+        high: theme.colors.traces.high,
+      }),
+    [
+      theme.colors.surface,
+      theme.colors.traces.high,
       theme.colors.traces.low,
       theme.colors.traces.mid,
-      theme.colors.traces.high,
-    ]
-      .map((color) => parseHexColor(color))
-      .filter((stop): stop is RgbTriple => stop !== null);
-
-    return stops.length > 0 ? stops : FALLBACK_RAMP;
-  }, [
-    theme.colors.traces.high,
-    theme.colors.traces.low,
-    theme.colors.traces.mid,
-  ]);
+    ],
+  );
 
   return (
     <ModuleSurface

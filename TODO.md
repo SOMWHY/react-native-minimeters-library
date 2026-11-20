@@ -78,10 +78,10 @@
 
 ## Phase 6 — 仪表盘保真度（进行中）
 
-- 库 `@minimetermobile/ui@0.3.0`：示波器 `trigger`（默认在上升过零点对齐）+ `points` 默认取整帧采样数；VU `readout`；频谱 160 bin；声谱 `SPECTROGRAM_GAMMA = 0.75`；网格四角缩放把手。
+- 库 `@minimetermobile/ui@0.3.1`：示波器 `trigger`（默认在上升过零点对齐）+ `points` 默认取整帧采样数；VU `readout`；频谱 160 bin；声谱 `SPECTROGRAM_GAMMA = 0.75`；网格四角缩放把手。
 - 宿主：`ANALYSIS_BIN_COUNT` 64→160、显示窗口 -80 dB、`STREAM_REFRESH_MS` 100→33、声谱行数上限 120（4 s）、波形 120 列、静默频谱显示为 waiting、设置球拖动改为 `Animated.ValueXY`（拖动不再重渲染面板）。
-- 待办：按帧率切片（波形 20 Hz / 频谱 15 Hz / 表头 10 Hz）尚未实现，`engine.push` 仍按 33 ms 处理每帧；VU/LUFS 的 dB 域 24 dB/s 释放尚未实现（仍是毫秒指数弹道）；波形历史窗口仍为 3 s。
 - CodeRabbit CLI 审查（`coderabbit review --agent --committed`）报了 3 条，全部属实并已修：
   - `cornerZoneSize` 给紧凑卡片留 `MIN_DRAG_ZONE = 32` dp 的中间拖动带，四角把手不再铺满整张卡（120×64 的卡片原先完全没有可按住拖动的区域）。
   - 触发检测改用 `resolveChannelIndex`，与绘制读取同一通道；此前立体声 `channel = 2` 时触发读的是下一帧的 ch0，而波形读 ch1。
   - 触发后改为**旋转**已抽取的波形而不是从偏移处重读，横向时间刻度逐帧恒定（`triggeredTraceSamples`）。
+- 声谱色带改为 `[surface, low, mid, high]`（`buildSpectrogramRamp`）：静音像素取卡片底色，不再整块涂 `traces.low`，与其它模块的卡片底色一致。
