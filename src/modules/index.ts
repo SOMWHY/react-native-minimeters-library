@@ -4,11 +4,14 @@ export type { ModuleSurfaceProps } from './ModuleSurface';
 export {
   DEFAULT_DB_RANGE,
   clampUnit,
+  meterRowBounds,
   normalizeBins,
   toEnvelopeColumns,
   toMeterScale,
   toStereoPoints,
   toTraceSamples,
+  type MeterRowBounds,
+  type MeterRowOptions,
 } from './display';
 
 export { resolvePcmState } from './pcm';

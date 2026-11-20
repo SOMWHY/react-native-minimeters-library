@@ -1,10 +1,19 @@
 import type { ModuleStatus } from '../types';
 
-/** Host-computed loudness readouts, all in dBFS / LUFS. */
+/**
+ * Host-computed loudness readouts, all in dBFS / LUFS.
+ *
+ * `lufs` is the **live** loudness the bar draws — in practice the momentary
+ * (400 ms) value, so the bar reacts to silence. `integrated` is the BS.1770
+ * programme average: it is reported as text only, because by definition it does
+ * not fall when the programme goes quiet.
+ */
 export interface LoudnessValues {
   readonly peak: number;
   readonly rms: number;
   readonly lufs: number;
+  /** Programme-integrated loudness, rendered as the `INT` note. */
+  readonly integrated?: number;
 }
 
 function isFiniteLevel(value: number | undefined): boolean {

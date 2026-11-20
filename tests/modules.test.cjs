@@ -126,6 +126,92 @@ test('maps a meter value through a dB range', () => {
   assert.equal(display.toMeterScale(12, [-60, 0]), 1);
 });
 
+test('aligns meter rows with evenly distributed label rows', () => {
+  const inset = 8;
+
+  for (const height of [96, 160, 240]) {
+    const rows = display.meterRowBounds({ height, rows: 3, inset, gap: 4 });
+
+    assert.equal(rows.length, 3);
+
+    const usable = height - inset * 2;
+
+    rows.forEach((row, index) => {
+      // The label sits in an equal flex row inside the same inset, so its centre
+      // is inset + (index + 0.5) * (usable / count).
+      assert.equal(row.center, inset + (index + 0.5) * (usable / 3));
+      assert.ok(row.y >= inset - 1e-9, `row ${index} starts inside the box`);
+      assert.ok(
+        row.y + row.height <= height - inset + 1e-9,
+        `row ${index} ends inside the box`,
+      );
+      // The bar is centred on its label, not merely packed from the top.
+      assert.equal(row.y + row.height / 2, row.center);
+    });
+  }
+});
+
+test('keeps the outer meter rows from drifting away from their labels', () => {
+  const inset = 8;
+  const height = 160;
+  const legacyRowHeight = height / 3;
+  const legacyCentres = [0, 1, 2].map(
+    (index) => index * legacyRowHeight + legacyRowHeight / 2,
+  );
+  const rows = display.meterRowBounds({ height, rows: 3, inset, gap: 4 });
+
+  // The middle row always matched; the outer two were off by 2 * inset / rows.
+  assert.equal(rows[1].center, legacyCentres[1]);
+  assert.notEqual(rows[0].center, legacyCentres[0]);
+  assert.notEqual(rows[2].center, legacyCentres[2]);
+  assert.ok(
+    Math.abs(rows[0].center - legacyCentres[0] - (inset * 2) / 3) < 1e-9,
+  );
+});
+
+test('degrades meter row geometry without producing negative sizes', () => {
+  // Height smaller than the vertical inset pair.
+  const squashed = display.meterRowBounds({
+    height: 6,
+    rows: 3,
+    inset: 8,
+    gap: 4,
+  });
+
+  assert.equal(squashed.length, 3);
+
+  for (const row of squashed) {
+    assert.equal(row.height, 0);
+    assert.equal(row.y, 8);
+    assert.equal(row.center, 8);
+  }
+
+  // A minimum bar height never exceeds its row, and never goes negative.
+  const floored = display.meterRowBounds({
+    height: 60,
+    rows: 3,
+    inset: 0,
+    gap: 100,
+    minBarHeight: 8,
+  });
+
+  floored.forEach((row) => {
+    assert.equal(row.height, 8);
+    assert.equal(row.y + row.height / 2, row.center);
+  });
+
+  // Non-finite input must not leak NaN into the drawing layer.
+  for (const row of display.meterRowBounds({ height: NaN, rows: 2, inset: 4 })) {
+    assert.ok(Number.isFinite(row.y));
+    assert.ok(Number.isFinite(row.height));
+  }
+
+  assert.deepEqual(
+    display.meterRowBounds({ height: 100, rows: 0, inset: 4 }),
+    [],
+  );
+});
+
 test('returns finite values for silent and non-finite input', () => {
   const silentEnvelope = display.toEnvelopeColumns(silentBlock, 4);
   assertAllFinite(silentEnvelope.min, 'silent min');

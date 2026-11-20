@@ -227,6 +227,71 @@ export function normalizeBins(
   return normalized;
 }
 
+/** One row of a stacked meter: bar geometry plus the row's vertical centre. */
+export interface MeterRowBounds {
+  readonly y: number;
+  readonly height: number;
+  readonly center: number;
+}
+
+export interface MeterRowOptions {
+  /** Total available height (the module's content box). */
+  readonly height: number;
+  /** Number of stacked bars. */
+  readonly rows: number;
+  /** Vertical inset applied at the top **and** bottom, in pixels. */
+  readonly inset: number;
+  /** Upper bound on the gap trimmed from each row to separate neighbouring bars. */
+  readonly gap?: number;
+  /** Floor for the bar height so a dense layout stays visible. */
+  readonly minBarHeight?: number;
+}
+
+/**
+ * Lays out `rows` stacked bars inside the content box after removing `inset`
+ * top and bottom. Row centres land on `inset + (index + 0.5) * rowHeight`,
+ * which is exactly where an evenly-distributed text label sits when the
+ * overlay uses the same inset as padding — so a bar and its label always share
+ * a centre line.
+ *
+ * Modules must not divide `height` by the row count themselves: doing so makes
+ * the outer rows drift by ±`2 * inset / rows` relative to the labels.
+ */
+export function meterRowBounds(options: MeterRowOptions): MeterRowBounds[] {
+  const rows = Math.floor(options.rows);
+
+  if (!Number.isFinite(rows) || rows < 1) {
+    return [];
+  }
+
+  const height = Number.isFinite(options.height) ? Math.max(0, options.height) : 0;
+  const inset = Number.isFinite(options.inset) ? Math.max(0, options.inset) : 0;
+  const gap = Number.isFinite(options.gap ?? 0) ? Math.max(0, options.gap ?? 0) : 0;
+  const minBarHeight = Number.isFinite(options.minBarHeight ?? 0)
+    ? Math.max(0, options.minBarHeight ?? 0)
+    : 0;
+  const usable = Math.max(0, height - inset * 2);
+  const rowHeight = usable / rows;
+  const barHeight = Math.min(
+    rowHeight,
+    Math.max(minBarHeight, rowHeight - gap),
+  );
+
+  const bounds: MeterRowBounds[] = [];
+
+  for (let index = 0; index < rows; index += 1) {
+    const center = inset + (index + 0.5) * rowHeight;
+
+    bounds.push({
+      y: center - barHeight / 2,
+      height: barHeight,
+      center,
+    });
+  }
+
+  return bounds;
+}
+
 /** Maps a single dB value through a dB window into `0..1`. */
 export function toMeterScale(value: number, dbRange: NumericRange): number {
   const span = dbRange[1] - dbRange[0];

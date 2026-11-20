@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useDrawingContext } from '../../drawing';
 import { STRUCTURAL_TOKENS } from '../../theme/structural-tokens';
-import { toMeterScale } from '../display';
+import { toMeterScale, meterRowBounds } from '../display';
 import { ModuleSurface } from '../ModuleSurface';
 import type { ModuleBaseProps } from '../types';
 import { resolveLoudnessState, type LoudnessValues } from './state';
@@ -28,11 +28,13 @@ function LoudnessBars({ data, dbRange }: LoudnessBarsProps) {
   const { colors, height, tokens, width } = useDrawingContext();
 
   const inset = tokens.spacing.sm;
-  const rowHeight = height / ROWS;
-  const barHeight = Math.max(
-    tokens.strokeWidth.strong,
-    rowHeight - tokens.spacing.md,
-  );
+  const bounds = meterRowBounds({
+    height,
+    rows: ROWS,
+    inset,
+    gap: tokens.spacing.md - inset,
+    minBarHeight: tokens.strokeWidth.strong,
+  });
   const trackWidth = Math.max(0, width - inset * 2);
   const rows = [
     { key: 'peak', value: data.peak, color: colors.traces.high },
@@ -43,23 +45,28 @@ function LoudnessBars({ data, dbRange }: LoudnessBarsProps) {
   return (
     <>
       {rows.map((row, index) => {
-        const y = index * rowHeight + (rowHeight - barHeight) / 2;
+        const bounds_ = bounds[index];
+
+        if (bounds_ === undefined) {
+          return null;
+        }
+
         const filled = toMeterScale(row.value, dbRange) * trackWidth;
 
         return (
           <Fragment key={row.key}>
             <Rect
               x={inset}
-              y={y}
+              y={bounds_.y}
               width={trackWidth}
-              height={barHeight}
+              height={bounds_.height}
               color={colors.surface}
             />
             <Rect
               x={inset}
-              y={y}
+              y={bounds_.y}
               width={filled}
-              height={barHeight}
+              height={bounds_.height}
               color={row.color}
             />
           </Fragment>
@@ -79,9 +86,17 @@ function LoudnessReadout({
   labelColor: string;
 }) {
   const rows = [
-    { key: 'peak', label: 'PEAK', value: data.peak },
-    { key: 'rms', label: 'RMS', value: data.rms },
-    { key: 'lufs', label: 'LUFS', value: data.lufs },
+    { key: 'peak', label: 'PEAK', value: data.peak, note: '' },
+    { key: 'rms', label: 'RMS', value: data.rms, note: '' },
+    {
+      key: 'lufs',
+      label: 'LUFS',
+      value: data.lufs,
+      note:
+        data.integrated === undefined || data.integrated === null
+          ? ''
+          : `INT ${data.integrated.toFixed(1)}`,
+    },
   ];
 
   return (
@@ -91,9 +106,16 @@ function LoudnessReadout({
           <Text style={[styles.readoutLabel, { color: labelColor }]}>
             {row.label}
           </Text>
-          <Text style={[styles.readoutValue, { color }]}>
-            {`${row.value.toFixed(1)}`}
-          </Text>
+          <View style={styles.readoutValues}>
+            {row.note === '' ? null : (
+              <Text style={[styles.readoutNote, { color: labelColor }]}>
+                {row.note}
+              </Text>
+            )}
+            <Text style={[styles.readoutValue, { color }]}>
+              {`${row.value.toFixed(1)}`}
+            </Text>
+          </View>
         </View>
       ))}
     </View>
@@ -145,6 +167,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  readoutValues: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: STRUCTURAL_TOKENS.spacing.xs,
+  },
+  readoutNote: {
+    fontFamily: STRUCTURAL_TOKENS.typography.fontFamily,
+    fontSize: STRUCTURAL_TOKENS.typography.micro,
+    fontWeight: STRUCTURAL_TOKENS.typography.fontWeight.medium,
   },
   readoutLabel: {
     fontFamily: STRUCTURAL_TOKENS.typography.fontFamily,
