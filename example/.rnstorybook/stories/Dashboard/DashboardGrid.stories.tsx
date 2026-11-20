@@ -12,6 +12,7 @@ import {
   VuModule,
   WaveformModule,
   setVisibility,
+  type CellRect,
   type DashboardItem,
   type DashboardLayout,
   type LoudnessValues,
@@ -88,33 +89,35 @@ function item(
   };
 }
 
-/** The host owns data injection; the grid only asks for a body per item. */
+/** The host owns data injection; the grid asks for a body per item and its cell. */
 function renderModule(theme: VisualizationTheme) {
-  return (dashboardItem: DashboardItem) => {
+  return (dashboardItem: DashboardItem, rect: CellRect) => {
+    const height = rect.height;
+
     switch (dashboardItem.kind) {
       case 'waveform':
-        return <WaveformModule theme={theme} block={stereoFrame} height={150} />;
+        return <WaveformModule theme={theme} block={stereoFrame} height={height} />;
       case 'oscilloscope':
-        return <OscilloscopeModule theme={theme} block={stereoFrame} height={96} />;
+        return <OscilloscopeModule theme={theme} block={stereoFrame} height={height} />;
       case 'vectorscope':
-        return <VectorscopeModule theme={theme} block={stereoFrame} height={96} />;
+        return <VectorscopeModule theme={theme} block={stereoFrame} height={height} />;
       case 'spectrum':
         return (
           <SpectrumModule
             theme={theme}
             bins={spectrumBins}
             dbRange={spectrumDbRange}
-            height={150}
+            height={height}
           />
         );
       case 'vu':
-        return <VuModule theme={theme} data={vuLevels} height={96} />;
+        return <VuModule theme={theme} data={vuLevels} height={height} />;
       case 'loudness':
         return (
           <LoudnessModule
             theme={theme}
             data={loudnessValues}
-            height={96}
+            height={height}
             dbRange={[-60, 0]}
           />
         );
@@ -124,7 +127,7 @@ function renderModule(theme: VisualizationTheme) {
             theme={theme}
             rows={spectrogramRows}
             maxRows={64}
-            height={150}
+            height={height}
           />
         );
       default:

@@ -134,25 +134,33 @@ import {
   DashboardGrid,
   compact,
   DEFAULT_GRID_CONFIG,
-  DEFAULT_GRID_METRICS,
+  GRID_PRESETS,
   WaveformModule,
   BUILT_IN_THEMES,
 } from '@minimetermobile/ui';
 
-const [layout, setLayout] = useState<DashboardLayout>(() =>
-  compact({ items: initialItems }, DEFAULT_GRID_CONFIG),
-);
+const THEME = BUILT_IN_THEMES.midnight;
+
+const [layout, setLayout] = useState<DashboardLayout>(() => ({
+  items: compact(initialItems, DEFAULT_GRID_CONFIG),
+}));
 
 <DashboardGrid
   layout={layout}
-  theme={BUILT_IN_THEMES.midnight}
+  theme={THEME}
   config={DEFAULT_GRID_CONFIG}
-  metrics={DEFAULT_GRID_METRICS}
+  metrics={GRID_PRESETS.phone}
   editing={editing}
   onLayoutChange={setLayout}
-  renderModule={(item) => <WaveformModule theme={theme} block={blocks[item.id]} />}
+  renderModule={(item, rect) => (
+    <WaveformModule theme={THEME} block={blocks[item.id]} height={rect.height} />
+  )}
 />;
 ```
+
+`renderModule` also receives the resolved `CellRect`. Pass `rect.height` as the
+module height so the plot fills the card the user resized — the grid is the only
+thing that knows the measured column width.
 
 ### Layout model
 
@@ -160,13 +168,12 @@ const [layout, setLayout] = useState<DashboardLayout>(() =>
   Everything the grid draws comes from that object.
 - Hidden items keep their placement in the array. Gravity compaction skips them,
   so a deleted card does not permanently reserve a hole it may want back.
-- Every mutation returns `{ items, outcome }` and never mutates its input
-  (`moveItem`, `resizeItem`, `setVisibility`, `compact`). Outcomes are explicit
-  (`moved`, `blocked`, `placed`, `noop`) instead of silent no-ops, so the host can
-  show feedback.
-- `resizeItem` returns `blocked` when a span would exceed `maxColSpan`,
-  `maxRowSpan`, or collide — the card stops at the last legal span rather than
-  overlapping its neighbour.
+- Every mutation returns a new `DashboardItem[]` and never mutates its input
+  (`moveItem`, `resizeItem`, `setVisibility`, `compact`, `normalizeLayout`,
+  `resetLayout`).
+- `resizeItem` clamps to the last legal span when a span would exceed
+  `maxColSpan`, `maxRowSpan`, or collide — the card stops at the last legal size
+  rather than overlapping its neighbour.
 
 ### Editing interactions
 

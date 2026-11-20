@@ -8,6 +8,7 @@ import { DraggableCard } from './DraggableCard';
 import { gridHeight, layoutRects } from './geometry';
 import { moveItem, resizeItem, setVisibility } from './layout';
 import type {
+  CellRect,
   DashboardItem,
   DashboardLayout,
   GridConfig,
@@ -20,8 +21,13 @@ export interface DashboardGridProps {
   readonly config: GridConfig;
   readonly metrics: GridMetrics;
   readonly editing?: boolean;
-  /** Render the module body for an item; the host owns data injection. */
-  readonly renderModule: (item: DashboardItem) => ReactNode;
+  /**
+   * Render the module body for an item; the host owns data injection.
+   *
+   * The resolved cell rect is handed back so the host can size the module to the
+   * card it lives in without re-deriving the grid geometry itself.
+   */
+  readonly renderModule: (item: DashboardItem, rect: CellRect) => ReactNode;
   readonly onLayoutChange: (layout: DashboardLayout) => void;
   readonly style?: StyleProp<ViewStyle>;
 }
@@ -107,7 +113,7 @@ export function DashboardGrid({
               onResizeEnd={(target) => handleResizeEnd(item.id, target)}
               onHide={() => handleHide(item.id)}
             >
-              {renderModule(item)}
+              {renderModule(item, rect)}
             </DraggableCard>
           ))}
     </View>
