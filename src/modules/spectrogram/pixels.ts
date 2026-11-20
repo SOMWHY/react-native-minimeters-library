@@ -4,6 +4,10 @@
  * No React Native and no Skia imports: the host hands over normalized rows and
  * a color ramp, and this turns them into an RGBA byte buffer. Keeping it pure
  * makes the pixel layout testable in Node.
+ *
+ * Orientation: time is the horizontal axis (newest on the right) and frequency
+ * is the vertical axis with the lowest bin at the bottom, matching how the
+ * desktop app is read.
  */
 
 const ALPHA_OPAQUE = 255;
@@ -77,6 +81,11 @@ export function isSpectrogramValid(
 /**
  * Rasterizes normalized rows (`0..1`, oldest first) into RGBA bytes.
  *
+ * The image is drawn the way a spectrogram is read on screen: **time runs
+ * across** (`width` is one column per row, oldest on the left, newest on the
+ * right) and **frequency runs up** (`height` is one pixel row per bin, bin 0 —
+ * the lowest frequency — in the *last* row, so bass sits at the bottom).
+ *
  * `maxRows` keeps the newest rows: anything older is trimmed from the front so
  * the newest audio always lands in the same place on screen. Ragged rows pad
  * with silence instead of throwing; callers use `isSpectrogramValid` to report
@@ -89,14 +98,14 @@ export function toSpectrogramPixels(
 ): SpectrogramRaster {
   const limit = Math.max(1, Math.floor(maxRows) || 1);
   const firstRow = Math.max(0, rows.length - limit);
-  const height = Math.min(rows.length, limit);
+  const width = Math.min(rows.length, limit);
   const stops: ReadonlyArray<RgbTriple> =
     ramp.length > 0 ? ramp : ([[0, 0, 0]] as ReadonlyArray<RgbTriple>);
 
-  let width = 0;
+  let height = 0;
 
   for (let rowIndex = firstRow; rowIndex < rows.length; rowIndex += 1) {
-    width = Math.max(width, rows[rowIndex].length);
+    height = Math.max(height, rows[rowIndex].length);
   }
 
   if (width === 0 || height === 0) {
@@ -105,10 +114,10 @@ export function toSpectrogramPixels(
 
   const bytes = new Uint8Array(width * height * 4);
 
-  for (let rowIndex = 0; rowIndex < height; rowIndex += 1) {
-    const row = rows[firstRow + rowIndex];
+  for (let columnIndex = 0; columnIndex < width; columnIndex += 1) {
+    const row = rows[firstRow + columnIndex];
 
-    for (let binIndex = 0; binIndex < width; binIndex += 1) {
+    for (let binIndex = 0; binIndex < height; binIndex += 1) {
       const value = binIndex < row.length ? Number(row[binIndex]) : 0;
       const unit = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
       const stopIndex = Math.min(
@@ -116,7 +125,8 @@ export function toSpectrogramPixels(
         Math.floor(unit * stops.length),
       );
       const stop = stops[stopIndex];
-      const offset = (rowIndex * width + binIndex) * 4;
+      const imageRow = height - 1 - binIndex;
+      const offset = (imageRow * width + columnIndex) * 4;
 
       bytes[offset] = stop[0];
       bytes[offset + 1] = stop[1];

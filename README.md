@@ -94,7 +94,7 @@ application owns decoding, analysis, and history, and hands the module
 | `SpectrumModule` | `bins`, `dbRange` | Filled area under the normalized dB curve, `low`→`high` gradient |
 | `VuModule` | `data: { left, right, leftPeak?, rightPeak? }` | Two bars on a gradient track with optional peak ticks |
 | `LoudnessModule` | `data: { peak, rms, lufs }`, `dbRange` | Three horizontal dB meters with numeric readouts |
-| `SpectrogramModule` | `rows`, `maxRows` | Scrolling RGBA history image, newest rows kept |
+| `SpectrogramModule` | `rows`, `maxRows` | RGBA history image — time across (newest right), frequency up (lowest bin at the bottom) |
 
 Every module also accepts `theme`, `height`, `label`, and `style`. `label` is
 opt-in: omit it and the module draws no caption, which is what you want inside a
@@ -128,7 +128,9 @@ and never computes FFT, peaks, RMS, or LUFS. Concretely:
   a display transform, not an audio metric.
 - `SpectrumModule` takes dB magnitude bins the host already computed.
 - `SpectrogramModule` takes normalized rows (`0..1`, oldest first) the host
-  already computed.
+  already computed, and draws them with time across and frequency up: `rows[i]`
+  becomes one image column (oldest left, newest right) and `rows[i][0]` — the
+  lowest frequency bin — lands in the bottom pixel row.
 - `VuModule` takes normalized `0..1` levels; `LoudnessModule` takes dB values.
 
 See `docs/data-contract.md` for the authoritative boundary.

@@ -576,7 +576,7 @@ const RAMP = [
   [255, 255, 255],
 ];
 
-test('rasterizes spectrogram rows into RGBA bytes in row-major order', () => {
+test('rasterizes spectrogram rows with time across and frequency up', () => {
   const raster = spectrogramPixels.toSpectrogramPixels(
     [
       [0, 0.5, 1],
@@ -586,32 +586,56 @@ test('rasterizes spectrogram rows into RGBA bytes in row-major order', () => {
     RAMP,
   );
 
-  assert.equal(raster.width, 3);
-  assert.equal(raster.height, 2);
+  // Two rows in → two pixels across (time); three bins → three pixels high.
+  assert.equal(raster.width, 2);
+  assert.equal(raster.height, 3);
   assert.equal(raster.bytes.length, raster.width * raster.height * 4);
 
   for (const byte of raster.bytes) {
     assert.ok(Number.isFinite(byte) && byte >= 0 && byte <= 255, `byte ${byte}`);
   }
 
-  // Row-major: the first row's first pixel comes first, and every pixel is opaque.
-  assert.deepEqual(Array.from(raster.bytes.slice(0, 4)), [0, 0, 0, 255]);
-  assert.deepEqual(Array.from(raster.bytes.slice(12, 16)), [255, 255, 255, 255]);
+  const pixel = (x, y) =>
+    Array.from(raster.bytes.slice((y * raster.width + x) * 4, (y * raster.width + x) * 4 + 4));
+
+  // The newest row is the right-most column.
+  assert.deepEqual(pixel(0, 2), [0, 0, 0, 255]);
+  assert.deepEqual(pixel(1, 2), [255, 255, 255, 255]);
+  // Bin 0 (lowest frequency) is drawn in the last row; the top row is the
+  // highest bin, which is loud in the oldest column.
+  assert.deepEqual(pixel(0, 0), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(1, 0), [0, 0, 0, 255]);
+});
+
+test('pads ragged spectrogram rows with silence', () => {
+  const raster = spectrogramPixels.toSpectrogramPixels([[1, 1], [1]], 8, RAMP);
+
+  assert.equal(raster.width, 2);
+  assert.equal(raster.height, 2);
+
+  const pixel = (x, y) =>
+    Array.from(raster.bytes.slice((y * raster.width + x) * 4, (y * raster.width + x) * 4 + 4));
+
+  // Column 1 is missing its second bin → the high-frequency row stays black.
+  assert.deepEqual(pixel(1, 1), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(1, 0), [0, 0, 0, 255]);
 });
 
 test('trims the oldest spectrogram rows down to maxRows', () => {
   const rows = [
     [0],
     [0],
-    [1],
+    [0.5],
     [1],
   ];
 
   const raster = spectrogramPixels.toSpectrogramPixels(rows, 2, RAMP);
 
-  assert.equal(raster.height, 2);
-  // The newest two rows survive, so the top of the image is already bright.
-  assert.deepEqual(Array.from(raster.bytes.slice(0, 4)), [255, 255, 255, 255]);
+  assert.equal(raster.width, 2);
+  assert.equal(raster.height, 1);
+  // The newest two rows survive: mid-grey on the left, full brightness right.
+  assert.deepEqual(Array.from(raster.bytes.slice(0, 4)), [64, 64, 64, 255]);
+  assert.deepEqual(Array.from(raster.bytes.slice(4, 8)), [255, 255, 255, 255]);
 });
 
 test('returns a zero-size raster for an empty row set', () => {
