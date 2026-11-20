@@ -44,6 +44,8 @@ const hierarchy = Object.freeze({
   trace: 2,
   label: 3,
   overlay: 4,
+  /** A card being dragged or resized floats above its neighbours. */
+  raised: 5,
 });
 
 const statusColors = Object.freeze({

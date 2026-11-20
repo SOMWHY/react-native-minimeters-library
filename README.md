@@ -89,12 +89,12 @@ application owns decoding, analysis, and history, and hands the module
 | Module | Props | Draws |
 | --- | --- | --- |
 | `WaveformModule` | `frames` (or `block`), `channel`, `columns` | Filled min/max envelope of the *recent past* plus the zero axis |
-| `OscilloscopeModule` | `block`, `channel`, `points` | Single decimated polyline over an opaque surface |
+| `OscilloscopeModule` | `block`, `channel`, `points`, `trigger` | Polyline over an opaque surface; `points` defaults to the block's own sample count and `trigger` (`'rising'` default, or `'none'`) anchors the trace on the first rising zero crossing so a steady tone stands still |
 | `VectorscopeModule` | `block`, `points` | Projected stereo dots with diagonal and mid-side axes |
 | `SpectrumModule` | `bins`, `dbRange` | Filled area under the normalized dB curve, `low`→`high` gradient |
-| `VuModule` | `data: { left, right, leftPeak?, rightPeak? }` | Two bars on a gradient track with optional peak ticks |
+| `VuModule` | `data: { left, right, leftPeak?, rightPeak? }`, `readout?` | Two bars on a gradient track with optional peak ticks and an optional corner readout (e.g. `-14.2 LUFS`) |
 | `LoudnessModule` | `data: { peak, rms, lufs }`, `dbRange` | Three horizontal dB meters with numeric readouts |
-| `SpectrogramModule` | `rows`, `maxRows` | RGBA history image — time across (newest right), frequency up (lowest bin at the bottom) |
+| `SpectrogramModule` | `rows`, `maxRows` | RGBA history image — time across (newest right), frequency up (lowest bin at the bottom), intensities curved by `SPECTROGRAM_GAMMA` |
 
 Every module also accepts `theme`, `height`, `label`, and `style`. `label` is
 opt-in: omit it and the module draws no caption, which is what you want inside a

@@ -145,27 +145,33 @@ export function toTraceSamples(
   block: PcmBlock,
   points: number,
   channel = 0,
+  offset = 0,
 ): Float32Array {
   const capacity = requirePositiveCount(points, 'points');
   const channels = resolveChannelCount(block);
   const sampleCount = resolveSampleCount(block, channels);
+  const start = Math.max(
+    0,
+    Math.min(sampleCount, Math.floor(Number(offset)) || 0),
+  );
+  const available = sampleCount - start;
 
-  if (sampleCount === 0) {
+  if (available === 0) {
     return new Float32Array(0);
   }
 
-  const count = Math.min(capacity, sampleCount);
+  const count = Math.min(capacity, available);
   const trace = new Float32Array(count);
 
   if (count === 1) {
-    trace[0] = readSample(block, channels, 0, channel);
+    trace[0] = readSample(block, channels, start, channel);
 
     return trace;
   }
 
   for (let index = 0; index < count; index += 1) {
-    const sampleIndex = Math.round((index * (sampleCount - 1)) / (count - 1));
-    trace[index] = readSample(block, channels, sampleIndex, channel);
+    const sampleIndex = Math.round((index * (available - 1)) / (count - 1));
+    trace[index] = readSample(block, channels, start + sampleIndex, channel);
   }
 
   return trace;

@@ -13,6 +13,15 @@
 const ALPHA_OPAQUE = 255;
 const HEX_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
+/**
+ * Intensity curve applied to every cell.
+ *
+ * Raw linear magnitudes put most musical material in the bottom two ramp stops,
+ * so the plot reads as a flat wash. A sub-one exponent lifts quiet detail into
+ * visible contrast while leaving full-scale energy at full brightness.
+ */
+export const SPECTROGRAM_GAMMA = 0.75;
+
 export type RgbTriple = readonly [number, number, number];
 
 export interface SpectrogramRaster {
@@ -95,6 +104,7 @@ export function toSpectrogramPixels(
   rows: ArrayLike<ArrayLike<number>>,
   maxRows: number,
   ramp: ReadonlyArray<RgbTriple>,
+  gamma = 1,
 ): SpectrogramRaster {
   const limit = Math.max(1, Math.floor(maxRows) || 1);
   const firstRow = Math.max(0, rows.length - limit);
@@ -119,7 +129,11 @@ export function toSpectrogramPixels(
 
     for (let binIndex = 0; binIndex < height; binIndex += 1) {
       const value = binIndex < row.length ? Number(row[binIndex]) : 0;
-      const unit = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+      const clamped = Number.isFinite(value)
+        ? Math.min(1, Math.max(0, value))
+        : 0;
+      const unit =
+        gamma === 1 || clamped === 0 ? clamped : Math.pow(clamped, gamma);
       const stopIndex = Math.min(
         stops.length - 1,
         Math.floor(unit * stops.length),

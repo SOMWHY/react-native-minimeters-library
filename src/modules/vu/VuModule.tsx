@@ -19,6 +19,12 @@ import { resolveVuState, type VuLevels } from './state';
 export interface VuModuleProps extends ModuleBaseProps {
   /** Normalized `0..1` levels; absence renders the `waiting` state. */
   readonly data?: VuLevels | null;
+  /**
+   * Optional numeric readout pinned to the top-right corner, e.g. `-14.2 LUFS`.
+   * The desktop app puts the loudness figure inside the meter, and reading the
+   * number where the bars are is what makes the meter actionable.
+   */
+  readonly readout?: string | null;
 }
 
 interface VuBarsProps {
@@ -111,8 +117,10 @@ export function VuModule({
   label,
   style,
   data,
+  readout,
 }: VuModuleProps) {
   const status = resolveVuState(data);
+  const hasReadout = typeof readout === 'string' && readout.length > 0;
 
   return (
     <ModuleSurface
@@ -122,7 +130,26 @@ export function VuModule({
       label={label}
       style={style}
       overlay={
-        status === 'ready' ? <VuLabels color={theme.colors.textMuted} /> : undefined
+        status === 'ready' ? (
+          <View style={styles.overlay} pointerEvents="none">
+            <VuLabels color={theme.colors.textMuted} />
+            {hasReadout ? (
+              <View
+                style={[
+                  styles.readout,
+                  { backgroundColor: theme.colors.canvas },
+                ]}
+              >
+                <Text
+                  style={[styles.readoutLabel, { color: theme.colors.text }]}
+                  numberOfLines={1}
+                >
+                  {readout}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : undefined
       }
     >
       {data === null || data === undefined ? null : <VuBars data={data} />}
@@ -131,6 +158,23 @@ export function VuModule({
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+  },
+  readout: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  readoutLabel: {
+    fontFamily: STRUCTURAL_TOKENS.typography.fontFamily,
+    fontSize: STRUCTURAL_TOKENS.typography.micro,
+    fontWeight: STRUCTURAL_TOKENS.typography.fontWeight.medium,
+    fontVariant: ['tabular-nums'],
+  },
   labels: {
     flex: 1,
     flexDirection: 'row',

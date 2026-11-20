@@ -11,12 +11,13 @@ import { ModuleSurface } from '../ModuleSurface';
 import type { ModuleBaseProps } from '../types';
 import {
   parseHexColor,
+  SPECTROGRAM_GAMMA,
   toSpectrogramPixels,
   type RgbTriple,
 } from './pixels';
 import { resolveSpectrogramState } from './state';
 
-const DEFAULT_MAX_ROWS = 96;
+const DEFAULT_MAX_ROWS = 128;
 
 /**
  * Last-resort ramp for a theme whose trace colors cannot be parsed as hex.
@@ -46,7 +47,7 @@ function SpectrogramPlot({ rows, maxRows, ramp }: SpectrogramPlotProps) {
   const { width, height } = useDrawingContext();
 
   const image = useMemo(() => {
-    const raster = toSpectrogramPixels(rows, maxRows, ramp);
+    const raster = toSpectrogramPixels(rows, maxRows, ramp, SPECTROGRAM_GAMMA);
 
     if (raster.width === 0 || raster.height === 0) {
       return null;

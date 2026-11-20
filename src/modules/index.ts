@@ -17,6 +17,7 @@ export {
 export { resolvePcmState } from './pcm';
 
 export {
+  findTriggerIndex,
   OscilloscopeModule,
   resolveOscilloscopeState,
   type OscilloscopeModuleProps,

@@ -16,6 +16,7 @@ export {
   rectsOverlap,
   resetLayout,
   resizeItem,
+  resizeItemToPlacement,
   setVisibility,
 } from './layout';
 export { DashboardGrid } from './DashboardGrid';
@@ -33,11 +34,21 @@ export type { ModuleTrayProps } from './ModuleTray';
 export type { ModuleCardProps } from './ModuleCard';
 export { canResize, cardAffordances } from './affordances';
 export type { CardAffordances } from './affordances';
-export { dragDeltaToCells, resizeDeltaToSpans } from './gestures';
+export {
+  cornerZoneSize,
+  cornerZones,
+  dragDeltaToCells,
+  MAX_CORNER_HEIGHT,
+  MAX_CORNER_WIDTH,
+  resizeCornerToPlacement,
+  resizeDeltaToSpans,
+} from './gestures';
 export type {
   CellTarget,
+  CornerZoneSize,
   DragContext,
   ResizeContext,
+  ResizeCorner,
   SpanTarget,
 } from './gestures';
 export type {

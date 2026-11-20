@@ -745,3 +745,89 @@ test('modules carry no caption of their own', () => {
     );
   }
 });
+
+// --- oscilloscope trigger ------------------------------------------------
+
+function mono(samples) {
+  return {
+    samples: Float32Array.from(samples),
+    channels: 1,
+    samplesPerChannel: samples.length,
+  };
+}
+
+test('the oscilloscope trigger finds the first rising zero crossing', () => {
+  const { findTriggerIndex } = require('../dist/modules/oscilloscope/trigger');
+  const samples = [];
+  // 8 samples per period, starting a quarter period in:
+  // +1, +0.707, 0, -0.707, -1, -0.707, 0, +0.707, +1, ...
+  for (let index = 0; index < 64; index += 1) {
+    samples.push(Math.sin((2 * Math.PI * (index + 2)) / 8));
+  }
+
+  // The rising crossing is at index 7: index 6 is exactly zero, so the first
+  // sample strictly above zero after a non-positive one is 7.
+  assert.equal(findTriggerIndex(mono(samples)), 7);
+});
+
+test('the oscilloscope trigger falls back to the first sample', () => {
+  const { findTriggerIndex } = require('../dist/modules/oscilloscope/trigger');
+
+  assert.equal(findTriggerIndex(mono(new Array(64).fill(0.5))), 0);
+  assert.equal(findTriggerIndex(mono(new Array(64).fill(0))), 0);
+});
+
+test('the oscilloscope trigger reads the requested channel', () => {
+  const { findTriggerIndex } = require('../dist/modules/oscilloscope/trigger');
+  const frames = 64;
+  const samples = new Float32Array(frames * 2);
+
+  for (let frame = 0; frame < frames; frame += 1) {
+    samples[frame * 2] = -0.5;
+    // Sample 2 is the first positive frame on the right channel.
+    samples[frame * 2 + 1] = frame >= 2 ? 0.5 : -0.5;
+  }
+
+  const block = { samples, channels: 2, samplesPerChannel: frames };
+
+  assert.equal(findTriggerIndex(block, 1), 2);
+  assert.equal(findTriggerIndex(block, 0), 0);
+});
+
+test('a triggered trace skips the samples before the crossing', () => {
+  const { toTraceSamples } = require('../dist/modules/display');
+  const block = mono([0, 1, 2, 3, 4, 5, 6, 7]);
+
+  // 4 vertices over 8 samples land on indices 0, 2, 5 and 7.
+  assert.deepEqual(Array.from(toTraceSamples(block, 4)), [0, 2, 5, 7]);
+
+  // Offsetting by 2 shifts the window: 2 + (0, 2, 3, 5).
+  assert.deepEqual(Array.from(toTraceSamples(block, 4, 0, 2)), [2, 4, 5, 7]);
+
+  // An offset past the end yields an empty trace instead of throwing.
+  assert.equal(toTraceSamples(block, 4, 0, 99).length, 0);
+});
+
+// --- spectrogram gamma ---------------------------------------------------
+
+test('the spectrogram gamma lifts quiet cells without touching full scale', () => {
+  const {
+    SPECTROGRAM_GAMMA,
+    toSpectrogramPixels,
+  } = require('../dist/modules/spectrogram/pixels');
+  const ramp = Array.from({ length: 8 }, (_unused, index) => [index * 32, 0, 0]);
+  const rows = [[0.1, 1]];
+
+  const linear = toSpectrogramPixels(rows, 1, ramp);
+  const curved = toSpectrogramPixels(rows, 1, ramp, SPECTROGRAM_GAMMA);
+
+  // Row order is flipped: bin 0 lands in the last pixel row.
+  const floorOffset = (1 * 1 + 0) * 4;
+  const ceilOffset = (0 * 1 + 0) * 4;
+
+  // A quiet cell climbs one ramp stop (0 -> 32) while full scale stays at the top.
+  assert.equal(linear.bytes[floorOffset], 0);
+  assert.equal(curved.bytes[floorOffset], 32);
+  assert.equal(linear.bytes[ceilOffset], 224);
+  assert.equal(curved.bytes[ceilOffset], 224);
+});

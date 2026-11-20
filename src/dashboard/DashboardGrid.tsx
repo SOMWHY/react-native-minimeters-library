@@ -6,13 +6,14 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import type { VisualizationTheme } from '../theme/types';
 import { DraggableCard } from './DraggableCard';
 import { gridHeight, layoutRects } from './geometry';
-import { moveItem, resizeItem, setVisibility } from './layout';
+import { moveItem, resizeItemToPlacement, setVisibility } from './layout';
 import type {
   CellRect,
   DashboardItem,
   DashboardLayout,
   GridConfig,
   GridMetrics,
+  GridPlacement,
 } from './types';
 
 export interface DashboardGridProps {
@@ -87,8 +88,10 @@ export function DashboardGrid({
   );
 
   const handleResizeEnd = useCallback(
-    (id: string, target: { readonly colSpan: number; readonly rowSpan: number }) => {
-      onLayoutChange({ items: resizeItem(layout.items, id, target, config) });
+    (id: string, target: GridPlacement) => {
+      onLayoutChange({
+        items: resizeItemToPlacement(layout.items, id, target, config),
+      });
     },
     [config, layout.items, onLayoutChange],
   );

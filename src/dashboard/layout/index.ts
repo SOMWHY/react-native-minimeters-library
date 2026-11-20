@@ -11,5 +11,6 @@ export {
   normalizeLayout,
   resetLayout,
   resizeItem,
+  resizeItemToPlacement,
   setVisibility,
 } from './mutate';
