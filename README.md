@@ -96,7 +96,9 @@ application owns decoding, analysis, and history, and hands the module
 | `LoudnessModule` | `data: { peak, rms, lufs }`, `dbRange` | Three horizontal dB meters with numeric readouts |
 | `SpectrogramModule` | `rows`, `maxRows` | Scrolling RGBA history image, newest rows kept |
 
-Every module also accepts `theme`, `height`, `label`, and `style`.
+Every module also accepts `theme`, `height`, `label`, and `style`. `label` is
+opt-in: omit it and the module draws no caption, which is what you want inside a
+dashboard card that already prints a title.
 
 ```tsx
 import { WaveformModule, BUILT_IN_THEMES } from '@minimetermobile/ui';
@@ -171,6 +173,9 @@ thing that knows the measured column width.
 - Every mutation returns a new `DashboardItem[]` and never mutates its input
   (`moveItem`, `resizeItem`, `setVisibility`, `compact`, `normalizeLayout`,
   `resetLayout`).
+- `moveItem` and `resizeItem` place the card at the target and stop there. They
+do **not** compact afterwards, so moving one card never re-shuffles the rest of
+the layout behind the user's back. Run `compact` explicitly if you want gravity.
 - `resizeItem` clamps to the last legal span when a span would exceed
   `maxColSpan`, `maxRowSpan`, or collide — the card stops at the last legal size
   rather than overlapping its neighbour.
@@ -181,9 +186,20 @@ Drag and resize are `PanResponder` gestures, not Reanimated worklets: the drag
 path writes a settled layout once, on release, and nothing animates the layout
 array in between.
 
+- In edit mode the whole card is the drag surface, but a drag only starts after a
+  still hold of `DRAG_HOLD_MS` (150 ms). Before that the responder stays passive,
+  so an ordinary swipe scrolls the page instead of picking the card up — which is
+  what breaks when a grid lives inside a `ScrollView`.
+- `shouldArmDrag` / `shouldCancelArm` / `DRAG_CANCEL_DISTANCE` are the pure rules
+  behind that hold: movement beyond the cancel distance before the hold elapses
+  hands the gesture back to the scroll view.
+- The responder callbacks are created once and read from refs, so a re-render
+  mid-gesture cannot swap them out from under PanResponder.
 - Mid-gesture the card follows the finger through a `transform` (drag) or a pixel
   size delta (resize). The layout array is untouched until release, so
   `onLayoutChange` only ever fires with positions the host can persist directly.
+- The resize grabber is a 32 dp corner hit area (with `hitSlop`) — big enough for
+  a thumb, and it grows a sized-down card rather than burying the target.
 - `dragDeltaToCells` and `resizeDeltaToSpans` convert a pixel delta into a cell
   target and clamp it to the grid; both are pure and unit-tested without React.
 - Outside edit mode no responder is created at all, so a scroll gesture over the
@@ -191,6 +207,8 @@ array in between.
 - `ModuleTray` lists hidden modules and restores them through `setVisibility`,
   which finds a free slot and recompacts. It renders nothing when everything is
   visible.
+- The card draws one title, not two: the modules no longer default their `label`,
+  and the card header keeps `label ?? id`.
 
 ### Module states
 
@@ -208,6 +226,12 @@ VU levels above `1` clamp to full scale, and dB values outside `dbRange` clamp t
 the meter ends. `ModuleSurface` renders the shared shell (host view, single
 `VisualizationCanvas`, and a React Native label/readout overlay), so module text
 stays in React Native and no Skia font asset is bundled.
+
+`VisualizationCanvas` owns the `Canvas` and provides the drawing context, so a
+module's content can call `useDrawingContext` without knowing where it is
+mounted. On Android the canvas is a `TextureView`: layer-backed hosts (an
+`Animated` wrapper, a transparent overlay) then composite the plot instead of
+leaving a black hole.
 
 The dashboard container is display-only for the same reason: it places modules and
 reports where the user put them. Layout persistence, edit-mode chrome, and

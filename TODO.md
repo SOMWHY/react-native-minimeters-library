@@ -49,12 +49,14 @@
 - [x] Phase 5 step 1: Host integration (`docs/superpowers/plans/2026-11-20-phase-5-host-dashboard.md`) — library `renderModule` rect, host grid model, layout/theme persistence, PCM adapter seam, shared connection provider, dashboard screen, diagnostics tab.
 - [x] Phase 5 step 2: Host analysis engine (FFT bins, RMS/peak/LUFS, VU ballistics, spectrogram history) so the four waiting modules light up. Loudness is momentary K-weighted LUFS over a 400 ms window; VU uses 20 ms attack / 260 ms release with a 1.2 s peak hold.
 - [x] Meter fidelity pass: VU bars rescaled to dB, loudness windows split into momentary / short-term / integrated, spectrogram window tied to the poll cadence.
-- [ ] Phase 5 acceptance: device run in portrait and landscape (pairing, drag/resize/hide/restore, theme switch, rotation 2↔4 columns, relaunch restore, reset).
+- [x] Interaction pass: hold-to-drag on the whole card (no grab bar), thumb-sized resize grip, no auto-compaction after a move, single card title, canvas backed by a `TextureView` on Android, and a host layout that rotates without reloading from storage.
+- [ ] Phase 5 acceptance: device run in portrait and landscape (pairing, drag/resize/hide/restore, theme switch, rotation 2↔4 columns, relaunch restore, reset). The host now allows both orientations (`app.json` `"orientation": "default"`), so a device pass has to confirm the re-fit and persistence paths.
 
 ## Follow-ups
 - [ ] Confirm on device that the seven module stories render (the Android export bundle contains all seven titles and 36 Node tests pass, but no device run yet). Spectrogram's `Skia.Image.MakeImage` + `Skia.Data.fromBytes` runtime path is the least proven piece.
 - [ ] Confirm reanimated shared values are accepted by `LinearGradient` and `Image` children on device (Spectrum gradient).
-- [ ] Confirm the dashboard gestures on device: `PanResponder` inside a vertical `ScrollView` needs `onPanResponderTerminationRequest` tuning if iOS steals the touch, and the resize preview clamps at a 32 px touch target rather than a cell.
+- [x] Dashboard gestures, reworked after the device report: drag arms only after a 150 ms still hold (`DRAG_HOLD_MS`, `shouldArmDrag`, `shouldCancelArm`, `DRAG_CANCEL_DISTANCE`), so a swipe over the grid scrolls instead of picking up a card; the resize grip is a 32 dp corner target that grows the card rather than clamping against a 32 px preview box. Device confirmation of the hold curve is still worth a pass.
+- [ ] Confirm on device that editing a long grid stays usable: the page keeps scrolling in edit mode and only freezes while a drag is armed.
 - [x] Host integration regression (`npm test --workspace=minimeters-mobile`) — 5 suites / 24 tests green against this branch.
 - [x] Refresh the parent workspace lockfile (`D:\web_dev_projects\MiniMetersMobile\package-lock.json`) after this branch lands on `main`, so the host install resolves Skia and Worklets.
 
@@ -69,3 +71,6 @@
 - `DashboardGrid` now accepts an optional `testID`, forwarded to its container, so hosts can drive layout in tests (the grid renders nothing until it has measured a width).
 - The host app must import the Skia-free dashboard entry (`@minimetermobile/ui/dist/dashboard`) from modules that unit tests load: the package main pulls Skia's ESM build, which jest cannot transform.
 - The example `tsconfig.json` now lists `.rnstorybook/**/*.ts(x)` explicitly: TypeScript's `include` globs skip dot-prefixed directories, so the stories were never typechecked before. Fixing that surfaced a stale `SkPath.moveTo` usage in `Canvas.stories.tsx` (Skia 2.x builds paths through `Skia.PathBuilder.Make()`).
+- `moveItem` and `resizeItem` no longer compact: a drag moves the card it touched and leaves every other card alone. `compact` stays public and is still applied by `setVisibility` and by explicit host calls.
+- The modules stopped defaulting their `label`. `ModuleCard` prints `label ?? id` once, so a dashboard card no longer shows two competing titles.
+- `VisualizationCanvas` provides the drawing context and mounts an Android `TextureView`; the `Canvas` sits inside it so `useDrawingContext` cannot run outside a provider when a card is animated.
