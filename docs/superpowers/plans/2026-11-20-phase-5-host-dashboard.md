@@ -39,10 +39,10 @@
 **Interfaces:**
 - Produces: `DashboardGridProps.renderModule: (item: DashboardItem, rect: CellRect) => ReactNode`
 
-- [ ] Update the prop type and the call site to `renderModule(item, rect)`.
-- [ ] Update the stories so the module height comes from `rect.height`.
-- [ ] Run `npm run typecheck`, `npm run typecheck:example`, `npm test` (81/81).
-- [ ] Commit `feat(dashboard): pass the cell rect to renderModule`, then `chore(release): bump to 0.2.0`; ff-merge to `main`.
+- [x] Update the prop type and the call site to `renderModule(item, rect)`.
+- [x] Update the stories so the module height comes from `rect.height`.
+- [x] Run `npm run typecheck`, `npm run typecheck:example`, `npm test` (81/81).
+- [x] Commit `feat(dashboard): pass the cell rect to renderModule`, then `chore(release): bump to 0.2.0`; ff-merge to `main`.
 
 ## Task 2: Host — grid model and width presets
 
@@ -59,10 +59,10 @@
   - `fitToConfig(items: readonly DashboardItem[], config: GridConfig): DashboardItem[]`
   - `restoreFactoryLayout(config: GridConfig): DashboardLayout`
 
-- [ ] Write the failing tests (2-col phone preset, 4-col tablet preset, `maxColSpan === columns`, default items inside bounds and non-overlapping, `fitToConfig` clamping 4-col → 2-col, factory reset).
-- [ ] Run `npm test --workspace=minimeters-mobile` and confirm the new suite fails to resolve the module.
-- [ ] Implement `model.ts` using `GRID_PRESETS` and `normalizeLayout`.
-- [ ] Re-run tests; commit `feat(dashboard): add grid model and width presets`.
+- [x] Write the failing tests (2-col phone preset, 4-col tablet preset, `maxColSpan === columns`, default items inside bounds and non-overlapping, `fitToConfig` clamping 4-col → 2-col, factory reset).
+- [x] Run `npm test --workspace=minimeters-mobile` and confirm the new suite fails to resolve the module.
+- [x] Implement `model.ts` using `GRID_PRESETS` and `normalizeLayout`.
+- [x] Re-run tests; commit `feat(dashboard): add grid model and width presets`.
 
 ## Task 3: Host — layout and theme persistence codec
 
@@ -80,10 +80,10 @@
   - `serializeTheme(id: ThemeId): string`, `parseStoredTheme(raw: string | null): ThemeId | null`
   - `loadLayout(storage, config)`, `saveLayout(storage, layout)`, `loadTheme(storage)`, `saveTheme(storage, id)` where `storage: { getItem(key): Promise<string|null>; setItem(key, value): Promise<void> }`
 
-- [ ] Write the failing codec tests (round-trip, corrupt JSON, wrong version, unknown kind dropped, `NaN` placement dropped, empty items, storage stub).
-- [ ] Run tests; confirm red.
-- [ ] Implement the codec with injected storage; wire `loadLayout`/`saveLayout` to AsyncStorage in a thin adapter exported for the screens.
-- [ ] Re-run tests; commit `feat(dashboard): persist layout and theme`.
+- [x] Write the failing codec tests (round-trip, corrupt JSON, wrong version, unknown kind dropped, `NaN` placement dropped, empty items, storage stub).
+- [x] Run tests; confirm red.
+- [x] Implement the codec with injected storage; wire `loadLayout`/`saveLayout` to AsyncStorage in a thin adapter exported for the screens.
+- [x] Re-run tests; commit `feat(dashboard): persist layout and theme`.
 
 ## Task 4: Host — PCM adapter (step-2 seam)
 
@@ -97,10 +97,10 @@
   - `LIVE_PCM_KINDS`, `supportsLiveData(kind: ModuleKind): boolean`
   - `moduleDataFor(kind: ModuleKind, frame: PcmAudioFrame | null): PcmBlock | null`
 
-- [ ] Write the failing adapter tests (identity of `samples`, truth table over seven kinds, `null` frame).
-- [ ] Run tests; confirm red.
-- [ ] Implement the adapter; the four analysis kinds return `null` in step 1.
-- [ ] Re-run tests; commit `feat(dashboard): add the pcm adapter`.
+- [x] Write the failing adapter tests (identity of `samples`, truth table over seven kinds, `null` frame).
+- [x] Run tests; confirm red.
+- [x] Implement the adapter; the four analysis kinds return `null` in step 1.
+- [x] Re-run tests; commit `feat(dashboard): add the pcm adapter`.
 
 ## Task 5: Host — lift the connection into a provider
 
@@ -111,10 +111,10 @@
 **Interfaces:**
 - Produces: `PcmConnectionProvider`, `usePcmConnection(): { state, latestFrame, receivedFrameCount, scanError, connectionError, protocolError, connect(payload), disconnect() }`
 
-- [ ] Move the socket/state machine out of `PcmMonitorScreen` without behavior change (100 ms refresh, same error branches, injectable `socketFactory`).
-- [ ] Wrap `AppTabs` in the provider.
-- [ ] Run existing host tests (24) — they must stay green.
-- [ ] Commit `feat(connection): lift the pcm connection into a provider`.
+- [x] Move the socket/state machine out of `PcmMonitorScreen` without behavior change (100 ms refresh, same error branches, injectable `socketFactory`).
+- [x] Wrap `AppTabs` in the provider.
+- [x] Run existing host tests (24) — they must stay green.
+- [x] Commit `feat(connection): lift the pcm connection into a provider`.
 
 ## Task 6: Host — dashboard hook and Home screen
 
@@ -127,10 +127,10 @@
 - Consumes: `gridForWidth`, `defaultLayout`, `fitToConfig`, `restoreFactoryLayout`, `loadLayout`, `saveLayout`, `loadTheme`, `saveTheme`, `moduleDataFor`, `usePcmConnection`.
 - Produces: `useDashboardLayout(config)` → `{ layout, themeId, editing, setEditing, setThemeId, onLayoutChange, reset }`; `DashboardScreen`.
 
-- [ ] Implement the hook (factory first paint, 300 ms debounced save, immediate theme save, reset).
-- [ ] Implement the screen: pairing UI when disconnected, `DashboardGrid` when connected, header toolbar (status, EDIT/DONE, three theme chips, RESET), tray under the grid only while editing with hidden items, one-line note above the grid naming the four waiting modules.
-- [ ] Verify `npx tsc --noEmit` and `npm run lint` are clean.
-- [ ] Commit `feat(dashboard): render the live grid on the home tab`.
+- [x] Implement the hook (factory first paint, 300 ms debounced save, immediate theme save, reset).
+- [x] Implement the screen: pairing UI when disconnected, `DashboardGrid` when connected, header toolbar (status, EDIT/DONE, three theme chips, RESET), tray under the grid only while editing with hidden items, one-line note above the grid naming the four waiting modules.
+- [x] Verify `npx tsc --noEmit` and `npm run lint` are clean.
+- [x] Commit `feat(dashboard): render the live grid on the home tab`.
 
 ## Task 7: Host — move raw diagnostics to Explore
 
@@ -138,9 +138,9 @@
 - Create: `minimeters-mobile/src/features/monitoring/PcmDiagnosticsScreen.tsx`
 - Modify: `minimeters-mobile/src/app/explore.tsx`
 
-- [ ] Port `PcmFrameDetails` to the new screen on top of `usePcmConnection()`.
-- [ ] Replace the Expo template content in `explore.tsx`; delete components only that page used.
-- [ ] Verify typecheck + lint; commit `feat(monitoring): move raw sample diagnostics to explore`.
+- [x] Port `PcmFrameDetails` to the new screen on top of `usePcmConnection()`.
+- [x] Replace the Expo template content in `explore.tsx`; delete components only that page used.
+- [x] Verify typecheck + lint; commit `feat(monitoring): move raw sample diagnostics to explore`.
 
 ## Task 8: Verification and status docs
 
@@ -148,12 +148,12 @@
 - Modify: `react-native-minimeters-library/TODO.md`
 - Modify: `react-native-minimeters-library/README.md` (dashboard section note about `rect`)
 
-- [ ] Library: `npm test`, `npm run typecheck`, `npm run typecheck:example`, `npm pack --dry-run`.
-- [ ] Host: `npm test --workspace=minimeters-mobile`, `npx tsc --noEmit`, `npm run lint`.
-- [ ] Storybook: `npm run start:ui-storybook` — Dashboard stories render with `rect`-derived heights.
+- [x] Library: `npm test`, `npm run typecheck`, `npm run typecheck:example`, `npm pack --dry-run`.
+- [x] Host: `npm test --workspace=minimeters-mobile`, `npx tsc --noEmit`, `npm run lint`.
+- [x] Storybook: `npm run start:ui-storybook` — Dashboard stories render with `rect`-derived heights.
 - [ ] Device (portrait + landscape): pairing → live waveform/oscilloscope/vectorscope; four modules `WAITING FOR DATA`; EDIT drag/resize/hide/restore; theme switch; rotation 2↔4 columns without overlap; relaunch restores layout + theme; RESET restores factory layout; Explore shows the raw table.
-- [ ] Update `TODO.md`: tick Phase 5 step 1, add the step-2 analysis engine entry, record the device result.
-- [ ] Commit `docs: record phase 5 status`.
+- [x] Update `TODO.md`: tick Phase 5 step 1, add the step-2 analysis engine entry, record the device result.
+- [x] Commit `docs: record phase 5 status`.
 
 ## Test plan summary
 

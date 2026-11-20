@@ -8,6 +8,7 @@
 - [x] Phase 2 delivered: Skia drawing base, structural tokens, and three built-in themes.
 - [x] Phase 3 delivered: seven visualization modules with state classifiers, display helpers, and Storybook stories.
 - [x] Phase 4 delivered: pure grid layout (`compact`, `moveItem`, `resizeItem`, `setVisibility`) plus the editable dashboard (drag, grid-stepped resize, hidden tray).
+- [x] Phase 5 step 1 delivered: live PCM dashboard host wiring (shared pairing provider, persisted layout and theme, `renderModule` cell rect, raw diagnostics moved to a second tab). Device acceptance still pending.
 
 ## Phase 1 — Foundation and data contract
 - [x] npm workspace and `@minimetermobile/ui` package scaffold.
@@ -44,7 +45,9 @@
 
 ## Remaining phases
 - [x] Phase 4: Pure layout functions and editable dashboard interactions — spec and plan are written (`docs/superpowers/specs/2026-11-19-dashboard-container-design.md`, `docs/superpowers/plans/2026-11-19-dashboard-container.md`); implementation starts at Task 1.
-- [ ] Phase 5: Host integration and responsive acceptance checks.
+- [x] Phase 5 step 1: Host integration (`docs/superpowers/plans/2026-11-20-phase-5-host-dashboard.md`) — library `renderModule` rect, host grid model, layout/theme persistence, PCM adapter seam, shared connection provider, dashboard screen, diagnostics tab.
+- [ ] Phase 5 step 2: Host analysis engine (FFT bins, RMS/peak/LUFS, VU ballistics, spectrogram history) so the four waiting modules light up.
+- [ ] Phase 5 acceptance: device run in portrait and landscape (pairing, drag/resize/hide/restore, theme switch, rotation 2↔4 columns, relaunch restore, reset).
 
 ## Follow-ups
 - [ ] Confirm on device that the seven module stories render (the Android export bundle contains all seven titles and 36 Node tests pass, but no device run yet). Spectrogram's `Skia.Image.MakeImage` + `Skia.Data.fromBytes` runtime path is the least proven piece.
@@ -57,4 +60,6 @@
 - [ ] MiniMeters INI theme import; waiting for a real sample or authoritative format source.
 
 ## Notes
+- `DashboardGrid` now accepts an optional `testID`, forwarded to its container, so hosts can drive layout in tests (the grid renders nothing until it has measured a width).
+- The host app must import the Skia-free dashboard entry (`@minimetermobile/ui/dist/dashboard`) from modules that unit tests load: the package main pulls Skia's ESM build, which jest cannot transform.
 - The example `tsconfig.json` now lists `.rnstorybook/**/*.ts(x)` explicitly: TypeScript's `include` globs skip dot-prefixed directories, so the stories were never typechecked before. Fixing that surfaced a stale `SkPath.moveTo` usage in `Canvas.stories.tsx` (Skia 2.x builds paths through `Skia.PathBuilder.Make()`).
