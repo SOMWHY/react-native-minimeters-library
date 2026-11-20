@@ -29,6 +29,8 @@ export interface DashboardGridProps {
    */
   readonly renderModule: (item: DashboardItem, rect: CellRect) => ReactNode;
   readonly onLayoutChange: (layout: DashboardLayout) => void;
+  /** Test hook for hosts and their integration tests; forwarded to the container. */
+  readonly testID?: string;
   readonly style?: StyleProp<ViewStyle>;
 }
 
@@ -47,6 +49,7 @@ export function DashboardGrid({
   editing = false,
   renderModule,
   onLayoutChange,
+  testID,
   style,
 }: DashboardGridProps) {
   const [width, setWidth] = useState(0);
@@ -94,6 +97,7 @@ export function DashboardGrid({
 
   return (
     <View
+      testID={testID}
       onLayout={handleLayout}
       style={[styles.container, { height }, style]}
     >
