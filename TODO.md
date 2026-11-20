@@ -48,6 +48,7 @@
 - [x] Phase 4: Pure layout functions and editable dashboard interactions — spec and plan are written (`docs/superpowers/specs/2026-11-19-dashboard-container-design.md`, `docs/superpowers/plans/2026-11-19-dashboard-container.md`); implementation starts at Task 1.
 - [x] Phase 5 step 1: Host integration (`docs/superpowers/plans/2026-11-20-phase-5-host-dashboard.md`) — library `renderModule` rect, host grid model, layout/theme persistence, PCM adapter seam, shared connection provider, dashboard screen, diagnostics tab.
 - [x] Phase 5 step 2: Host analysis engine (FFT bins, RMS/peak/LUFS, VU ballistics, spectrogram history) so the four waiting modules light up. Loudness is momentary K-weighted LUFS over a 400 ms window; VU uses 20 ms attack / 260 ms release with a 1.2 s peak hold.
+- [x] Meter fidelity pass: VU bars rescaled to dB, loudness windows split into momentary / short-term / integrated, spectrogram window tied to the poll cadence.
 - [ ] Phase 5 acceptance: device run in portrait and landscape (pairing, drag/resize/hide/restore, theme switch, rotation 2↔4 columns, relaunch restore, reset).
 
 ## Follow-ups
@@ -61,7 +62,10 @@
 - [ ] MiniMeters INI theme import; waiting for a real sample or authoritative format source.
 
 ## Notes
-- Host analysis is derived on the phone: `analyseFrame` stays pure (bins, levels, scopes) and `createAnalysisEngine` carries the meter state — BS.1770-4 K-weighted momentary LUFS over a 400 ms sample-count window, plus one-pole VU ballistics (20 ms attack / 260 ms release, 1.2 s peak hold) so a per-frame RMS cannot make the bar twitch.
+- Host analysis is derived on the phone: `analyseFrame` stays pure (bins, levels, scopes) and `createAnalysisEngine` carries the meter state — BS.1770-4 K-weighted loudness in three windows (momentary 400 ms, short-term 3 s, integrated with absolute -70 LUFS and relative -10 LU gating), plus one-pole VU ballistics (20 ms attack / 260 ms release, 1.2 s peak hold) so a per-frame RMS cannot make the bar twitch.
+- Meters are dB meters: `module-values.ts` maps linear levels to dB and then to a `0..1` bar fraction, so -20 dBFS sits two thirds up the VU bar instead of a tenth. VU span is -60..0 dBFS, loudness span is the analysis floor..0 dBFS.
+- The host status strip prints `integrated LUFS (M … / S …)`; the library's `LoudnessValues` has one `lufs` slot, which the host fills with the integrated value.
+- Spectrogram history is expressed in seconds (`SPECTROGRAM_HISTORY_SECONDS = 5`) and converted to rows with the stream's poll interval (`STREAM_REFRESH_MS = 100` → 50 rows), so the plot's timeline cannot drift from the polling cadence.
 - `DashboardGrid` now accepts an optional `testID`, forwarded to its container, so hosts can drive layout in tests (the grid renders nothing until it has measured a width).
 - The host app must import the Skia-free dashboard entry (`@minimetermobile/ui/dist/dashboard`) from modules that unit tests load: the package main pulls Skia's ESM build, which jest cannot transform.
 - The example `tsconfig.json` now lists `.rnstorybook/**/*.ts(x)` explicitly: TypeScript's `include` globs skip dot-prefixed directories, so the stories were never typechecked before. Fixing that surfaced a stale `SkPath.moveTo` usage in `Canvas.stories.tsx` (Skia 2.x builds paths through `Skia.PathBuilder.Make()`).
