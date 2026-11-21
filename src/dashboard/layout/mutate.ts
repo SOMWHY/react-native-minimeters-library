@@ -158,6 +158,37 @@ export function moveItem(
   return resolveOverlaps(next, config.columns, id);
 }
 
+/** Apply a whole placement to one item, clamped to the grid. */
+function withPlacement(
+  item: DashboardItem,
+  placement: GridPlacement,
+  config: GridConfig,
+): DashboardItem {
+  const colSpan = clampSpan(
+    placement.colSpan,
+    config.minColSpan,
+    Math.min(config.maxColSpan, config.columns),
+  );
+  const rowSpan = clampSpan(
+    placement.rowSpan,
+    config.minRowSpan,
+    config.maxRowSpan,
+  );
+
+  return {
+    ...item,
+    placement: {
+      colSpan,
+      rowSpan,
+      col: Math.min(
+        Math.max(0, Math.round(placement.col)),
+        Math.max(0, config.columns - colSpan),
+      ),
+      row: Math.max(0, Math.round(placement.row)),
+    },
+  };
+}
+
 /**
  * Resize result: spans clamp to the configured limits.
  *
@@ -174,6 +205,31 @@ export function resizeItem(
 
   const next = items.map((item) =>
     item.id === id && item.visible ? withSpan(item, span, config) : item,
+  );
+
+  return resolveOverlaps(next, config.columns, id);
+}
+
+/**
+ * Corner-resize result: the card takes the complete snapped placement.
+ *
+ * Unlike `resizeItem` this moves the origin too, because holding the left or top
+ * edge pulls the card's top-left corner with the finger while the opposite corner
+ * stays anchored. The priority item keeps its drop placement and everything it now
+ * covers is pushed into the next free hole, same as a drag.
+ */
+export function resizeItemToPlacement(
+  items: readonly DashboardItem[],
+  id: string,
+  placement: GridPlacement,
+  config: GridConfig,
+): DashboardItem[] {
+  assertGridConfig(config);
+
+  const next = items.map((item) =>
+    item.id === id && item.visible
+      ? withPlacement(item, placement, config)
+      : item,
   );
 
   return resolveOverlaps(next, config.columns, id);

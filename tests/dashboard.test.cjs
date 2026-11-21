@@ -855,7 +855,232 @@ test('the drag surface covers the whole card', () => {
   // No grab bar: the card itself carries the responders, so any point drags.
   assert.doesNotMatch(card, /grabBar/);
   assert.match(card, /dragHandlers/);
-  // The resize corner clears the 48dp touch-target floor with its slop.
-  assert.match(card, /RESIZE_HANDLE = 32/);
-  assert.match(card, /RESIZE_HIT_SLOP = 8/);
+  // The resize corners clear the touch-target floor with their slop and are sized
+  // from the card, so all four fit a one-row card without overlapping.
+  assert.match(card, /CORNERS/);
+  assert.match(card, /CORNER_HIT_SLOP = 8/);
+  assert.match(card, /accessibilityLabel: `Resize/);
+});
+
+// --- corner resize math -------------------------------------------------
+// One column is 100 px wide with an 8 px gap, so a cell pitch is 108 x 104.
+
+const WIDE = {
+  columns: 3,
+  minColSpan: 1,
+  minRowSpan: 1,
+  maxColSpan: 3,
+  maxRowSpan: 4,
+};
+
+function resizeContext(placement, config) {
+  return { cellWidth: 100, rowHeight: 96, gap: 8, placement, config };
+}
+
+test('the bottom-right corner grows spans without moving the origin', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('bottom-right', { dx: 108, dy: 104 }, resizeContext(
+      { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+      CONFIG,
+    )),
+    { col: 0, row: 0, colSpan: 2, rowSpan: 2 },
+  );
+});
+
+test('the bottom-right corner stops at the grid edge and the max span', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  // Two columns are already the whole grid; dragging further must not overflow.
+  assert.deepEqual(
+    resizeCornerToPlacement('bottom-right', { dx: 540, dy: 5 * 104 }, resizeContext(
+      { col: 0, row: 0, colSpan: 2, rowSpan: 1 },
+      CONFIG,
+    )),
+    { col: 0, row: 0, colSpan: 2, rowSpan: 4 },
+  );
+});
+
+test('the bottom-left corner moves the origin left and widens the card', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('bottom-left', { dx: -108, dy: 104 }, resizeContext(
+      { col: 1, row: 0, colSpan: 1, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 0, row: 0, colSpan: 2, rowSpan: 2 },
+  );
+});
+
+test('the bottom-left corner cannot grow past the grid origin', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('bottom-left', { dx: -500, dy: 0 }, resizeContext(
+      { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+  );
+});
+
+test('the top-left corner moves both the origin and both spans', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('top-left', { dx: -108, dy: -104 }, resizeContext(
+      { col: 1, row: 1, colSpan: 1, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 0, row: 0, colSpan: 2, rowSpan: 2 },
+  );
+});
+
+test('the top-right corner moves the origin up and widens to the right', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('top-right', { dx: 108, dy: -104 }, resizeContext(
+      { col: 0, row: 1, colSpan: 1, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 0, row: 0, colSpan: 2, rowSpan: 2 },
+  );
+});
+
+test('shrinking below the minimum span holds the anchored edge still', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  // Dragging the left edge right can only shrink to one column; the right edge
+  // must not follow the finger past it.
+  assert.deepEqual(
+    resizeCornerToPlacement('bottom-left', { dx: 300, dy: 0 }, resizeContext(
+      { col: 0, row: 0, colSpan: 2, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 1, row: 0, colSpan: 1, rowSpan: 1 },
+  );
+});
+
+test('a top edge drag at row zero cannot pull the card above the grid', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('top-left', { dx: 0, dy: -104 }, resizeContext(
+      { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 0, row: 0, colSpan: 1, rowSpan: 1 },
+  );
+});
+
+test('sub-cell drags leave the placement untouched', () => {
+  const { resizeCornerToPlacement } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(
+    resizeCornerToPlacement('top-left', { dx: -20, dy: -20 }, resizeContext(
+      { col: 1, row: 1, colSpan: 1, rowSpan: 1 },
+      WIDE,
+    )),
+    { col: 1, row: 1, colSpan: 1, rowSpan: 1 },
+  );
+});
+
+test('a corner resize applies the whole placement and pushes neighbours', () => {
+  const items = [item('a', 0, 0, 1, 1), item('b', 1, 0, 1, 1)];
+
+  const resized = mutate.resizeItemToPlacement(
+    items,
+    'a',
+    { col: 0, row: 0, colSpan: 2, rowSpan: 1 },
+    CONFIG,
+  );
+
+  assert.deepEqual(placementOf(resized, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 2,
+    rowSpan: 1,
+  });
+  assert.equal(placementOf(resized, 'b').row, 1);
+  assertNoOverlap(resized, 'corner resize');
+});
+
+test('a corner resize keeps the origin when it grew from the left edge', () => {
+  const items = [item('a', 1, 0, 1, 1)];
+
+  const resized = mutate.resizeItemToPlacement(
+    items,
+    'a',
+    { col: 0, row: 0, colSpan: 2, rowSpan: 1 },
+    CONFIG,
+  );
+
+  assert.deepEqual(placementOf(resized, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 2,
+    rowSpan: 1,
+  });
+});
+
+test('a corner resize clamps a placement the grid cannot hold', () => {
+  const items = [item('a', 0, 0, 1, 1)];
+
+  const resized = mutate.resizeItemToPlacement(
+    items,
+    'a',
+    { col: 5, row: -3, colSpan: 9, rowSpan: 9 },
+    CONFIG,
+  );
+
+  assert.deepEqual(placementOf(resized, 'a'), {
+    col: 0,
+    row: 0,
+    colSpan: 2,
+    rowSpan: 4,
+  });
+});
+
+test('corner handles tile a one-row card without overlapping', () => {
+  const { cornerZones } = require('../dist/dashboard/gestures');
+  const zones = cornerZones(360, 56);
+
+  // A 56 dp card keeps a 32 dp centre strip, so each handle is (56 - 32) / 2.
+  assert.deepEqual(zones['top-left'], { x: 0, y: 0, width: 64, height: 12 });
+  assert.deepEqual(zones['bottom-right'], {
+    x: 296,
+    y: 44,
+    width: 64,
+    height: 12,
+  });
+  assert.ok(zones['top-left'].y + zones['top-left'].height <= zones['bottom-left'].y);
+  assert.ok(zones['top-left'].x + zones['top-left'].width <= zones['top-right'].x);
+});
+
+test('corner handle sizes cap out on a tall card', () => {
+  const { cornerZoneSize } = require('../dist/dashboard/gestures');
+
+  assert.deepEqual(cornerZoneSize(600, 400), { width: 64, height: 40 });
+  // A narrow card halves rather than overflowing.
+  assert.deepEqual(cornerZoneSize(80, 400), { width: 24, height: 40 });
+});
+
+test('corner handles leave a centre strip to drag on a compact card', () => {
+  const { cornerZoneSize, MIN_DRAG_ZONE } = require('../dist/dashboard/gestures');
+
+  // Two columns of 120x64 is the smallest card the phone layout produces.
+  const compact = cornerZoneSize(120, 64);
+
+  assert.ok(
+    compact.height * 2 <= 64 - MIN_DRAG_ZONE,
+    `top and bottom handles must not meet: ${compact.height * 2}`,
+  );
+  assert.ok(compact.width * 2 <= 120 - MIN_DRAG_ZONE);
+  assert.ok(compact.height > 0 && compact.width > 0);
+
+  // Cards too small for the reserve still get one-pixel handles, never negative.
+  assert.deepEqual(cornerZoneSize(20, 16), { width: 1, height: 1 });
 });

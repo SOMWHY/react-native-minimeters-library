@@ -1,16 +1,17 @@
 import { Animated, PanResponder } from 'react-native';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { DRAG_HOLD_MS, shouldArmDrag, shouldCancelArm } from './drag-arm';
 import { ModuleCard } from './ModuleCard';
-import { dragDeltaToCells, resizeDeltaToSpans } from './gestures';
-import type { CellTarget, SpanTarget } from './gestures';
+import { dragDeltaToCells, resizeCornerToPlacement } from './gestures';
+import type { CellTarget, ResizeCorner } from './gestures';
 import type {
   CellRect,
   DashboardItem,
   GridConfig,
   GridMetrics,
+  GridPlacement,
 } from './types';
 import type { VisualizationTheme } from '../theme/types';
 
@@ -24,8 +25,8 @@ export interface DraggableCardProps {
   readonly config: GridConfig;
   /** Called once, on release, with the cell the card should settle into. */
   readonly onDragEnd: (target: CellTarget) => void;
-  /** Called once, on release, with the spans the card should settle into. */
-  readonly onResizeEnd: (target: SpanTarget) => void;
+  /** Called once, on release, with the placement the card should settle into. */
+  readonly onResizeEnd: (target: GridPlacement) => void;
   /** Called when the host should hide the module (edit mode only). */
   readonly onHide: () => void;
   /**
@@ -44,6 +45,24 @@ export interface DraggableCardProps {
  */
 const MIN_PREVIEW_SIZE = 32;
 
+/** Highlight ramp: short enough to feel instant, long enough to read as motion. */
+const GLOW_DURATION_MS = 120;
+
+const CORNERS: readonly ResizeCorner[] = [
+  'top-left',
+  'top-right',
+  'bottom-left',
+  'bottom-right',
+];
+
+function isLeadingCorner(corner: ResizeCorner): boolean {
+  return corner === 'top-left' || corner === 'bottom-left';
+}
+
+function isTopCorner(corner: ResizeCorner): boolean {
+  return corner === 'top-left' || corner === 'top-right';
+}
+
 interface LatestValues {
   readonly cellWidth: number;
   readonly config: GridConfig;
@@ -51,7 +70,7 @@ interface LatestValues {
   readonly item: DashboardItem;
   readonly rect: CellRect;
   readonly onDragEnd: (target: CellTarget) => void;
-  readonly onResizeEnd: (target: SpanTarget) => void;
+  readonly onResizeEnd: (target: GridPlacement) => void;
   readonly onGestureStateChange?: (active: boolean) => void;
 }
 
@@ -66,6 +85,10 @@ interface LatestValues {
  * Mid-gesture feedback runs through `Animated.Value`s, so the card tracks the
  * finger without re-rendering the module it wraps. The layout array is untouched
  * until release, so `onLayoutChange` stays a settled event the host can persist.
+ *
+ * All four corners resize. A corner that holds the left or top edge moves the
+ * card's origin as well as its size, so the preview translates while it grows and
+ * the opposite corner stays nailed under the finger.
  *
  * Outside edit mode no responder is created at all.
  */
@@ -111,6 +134,8 @@ export function DraggableCard({
   const translateY = useRef(new Animated.Value(0)).current;
   const width = useRef(new Animated.Value(Math.max(0, rect.width))).current;
   const height = useRef(new Animated.Value(Math.max(0, rect.height))).current;
+  const glow = useRef(new Animated.Value(0)).current;
+  const [active, setActive] = useState(false);
 
   /** Committed size, i.e. the base a resize preview is measured from. */
   const baseSize = useRef({ width: rect.width, height: rect.height });
@@ -158,11 +183,52 @@ export function DraggableCard({
     [clearHold],
   );
 
-  const notifyGesture = useCallback((active: boolean) => {
-    latest.current.onGestureStateChange?.(active);
+  const notifyGesture = useCallback((inFlight: boolean) => {
+    latest.current.onGestureStateChange?.(inFlight);
   }, []);
 
-  // Leaving edit mode mid-gesture must not leave a card stuck under the finger.
+  /**
+   * Light the card up on gesture start and fade it back on release.
+   *
+   * The ring is a plain state flip (one render, on grant) and the brightness is a
+   * native-driver opacity ramp: interpolating `backgroundColor` instead would drag
+   * the whole animation onto the JS thread, which is the thread already busy
+   * decoding PCM.
+   */
+  const highlight = useCallback(
+    (on: boolean) => {
+      if (on) {
+        setActive(true);
+        Animated.timing(glow, {
+          toValue: 1,
+          duration: GLOW_DURATION_MS,
+          useNativeDriver: true,
+        }).start();
+        return;
+      }
+
+      Animated.timing(glow, {
+        toValue: 0,
+        duration: GLOW_DURATION_MS,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setActive(false);
+        }
+      });
+    },
+    [glow],
+  );
+
+  const resetPreview = useCallback(() => {
+    const values = latest.current;
+
+    translateX.setValue(0);
+    translateY.setValue(0);
+    width.setValue(Math.max(0, values.rect.width));
+    height.setValue(Math.max(0, values.rect.height));
+  }, [height, translateX, translateY, width]);
+
   useEffect(() => {
     if (!editing) {
       clearHold();
@@ -177,8 +243,6 @@ export function DraggableCard({
     }
 
     return PanResponder.create({
-      // A touch is never claimed on contact: taps have to reach the hide button,
-      // and swipes have to reach the scroll view.
       onStartShouldSetPanResponder: () => false,
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_event, gesture) => {
@@ -191,6 +255,7 @@ export function DraggableCard({
       },
       onPanResponderGrant: () => {
         notifyGesture(true);
+        highlight(true);
         translateX.setValue(0);
         translateY.setValue(0);
       },
@@ -203,6 +268,7 @@ export function DraggableCard({
 
         clearHold();
         notifyGesture(false);
+        highlight(false);
         translateX.setValue(0);
         translateY.setValue(0);
 
@@ -222,64 +288,115 @@ export function DraggableCard({
       onPanResponderTerminate: () => {
         clearHold();
         notifyGesture(false);
+        highlight(false);
         translateX.setValue(0);
         translateY.setValue(0);
       },
       onPanResponderTerminationRequest: () => false,
     });
-  }, [clearHold, editing, notifyGesture, trackDrift, translateX, translateY]);
+  }, [
+    clearHold,
+    editing,
+    highlight,
+    notifyGesture,
+    trackDrift,
+    translateX,
+    translateY,
+  ]);
 
-  const resizeResponder = useMemo(() => {
+  const resizeResponders = useMemo(() => {
     if (!editing) {
       return null;
     }
 
-    return PanResponder.create({
-      // The corner is a dedicated target, so it can claim on contact.
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        notifyGesture(true);
-        moved.current = 0;
-      },
-      onPanResponderMove: (_event, gesture) => {
-        width.setValue(
-          Math.max(MIN_PREVIEW_SIZE, baseSize.current.width + gesture.dx),
-        );
-        height.setValue(
-          Math.max(MIN_PREVIEW_SIZE, baseSize.current.height + gesture.dy),
-        );
-      },
-      onPanResponderRelease: (_event, gesture) => {
-        const values = latest.current;
+    const previewFor = (corner: ResizeCorner, dx: number, dy: number) => {
+      const base = baseSize.current;
+      const left = isLeadingCorner(corner);
+      const top = isTopCorner(corner);
 
-        notifyGesture(false);
-        width.setValue(Math.max(0, values.rect.width));
-        height.setValue(Math.max(0, values.rect.height));
+      // A leading edge may only move inwards until the card hits the minimum
+      // size; outwards there is no pixel limit — the cell snap does the clamping.
+      const offsetX = left
+        ? Math.min(dx, Math.max(0, base.width - MIN_PREVIEW_SIZE))
+        : 0;
+      const offsetY = top
+        ? Math.min(dy, Math.max(0, base.height - MIN_PREVIEW_SIZE))
+        : 0;
 
-        values.onResizeEnd(
-          resizeDeltaToSpans(
-            { dx: gesture.dx, dy: gesture.dy },
-            {
-              cellWidth: values.cellWidth,
-              rowHeight: values.metrics.rowHeight,
-              gap: values.metrics.gap,
-              columns: values.config.columns,
-              placement: values.item.placement,
-              config: values.config,
-            },
-          ),
-        );
-      },
-      onPanResponderTerminate: () => {
-        const values = latest.current;
+      translateX.setValue(offsetX);
+      translateY.setValue(offsetY);
+      width.setValue(
+        Math.max(
+          MIN_PREVIEW_SIZE,
+          base.width + (left ? -offsetX : dx),
+        ),
+      );
+      height.setValue(
+        Math.max(
+          MIN_PREVIEW_SIZE,
+          base.height + (top ? -offsetY : dy),
+        ),
+      );
+    };
 
-        notifyGesture(false);
-        width.setValue(Math.max(0, values.rect.width));
-        height.setValue(Math.max(0, values.rect.height));
-      },
-      onPanResponderTerminationRequest: () => false,
-    });
-  }, [editing, height, notifyGesture, width]);
+    const responders: Partial<
+      Record<ResizeCorner, ReturnType<typeof PanResponder.create>>
+    > = {};
+
+    for (const corner of CORNERS) {
+      responders[corner] = PanResponder.create({
+        // The corner is a dedicated target, so it can claim on contact.
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          notifyGesture(true);
+          highlight(true);
+          moved.current = 0;
+        },
+        onPanResponderMove: (_event, gesture) => {
+          previewFor(corner, gesture.dx, gesture.dy);
+        },
+        onPanResponderRelease: (_event, gesture) => {
+          const values = latest.current;
+
+          notifyGesture(false);
+          highlight(false);
+          resetPreview();
+
+          values.onResizeEnd(
+            resizeCornerToPlacement(
+              corner,
+              { dx: gesture.dx, dy: gesture.dy },
+              {
+                cellWidth: values.cellWidth,
+                rowHeight: values.metrics.rowHeight,
+                gap: values.metrics.gap,
+                columns: values.config.columns,
+                placement: values.item.placement,
+                config: values.config,
+              },
+            ),
+          );
+        },
+        onPanResponderTerminate: () => {
+          notifyGesture(false);
+          highlight(false);
+          resetPreview();
+        },
+        onPanResponderTerminationRequest: () => false,
+      });
+    }
+
+    return responders;
+  }, [
+    editing,
+    height,
+    highlight,
+    notifyGesture,
+    resetPreview,
+    translateX,
+    translateY,
+    width,
+  ]);
 
   const holdHandlers = useMemo(() => {
     if (!editing) {
@@ -301,6 +418,22 @@ export function DraggableCard({
     return { ...holdHandlers, ...dragResponder.panHandlers };
   }, [dragResponder, holdHandlers]);
 
+  const resizeHandlers = useMemo(() => {
+    if (resizeResponders === null) {
+      return undefined;
+    }
+
+    const handlers: Partial<
+      Record<ResizeCorner, ReturnType<typeof PanResponder.create>['panHandlers']>
+    > = {};
+
+    for (const corner of CORNERS) {
+      handlers[corner] = resizeResponders[corner]?.panHandlers;
+    }
+
+    return handlers;
+  }, [resizeResponders]);
+
   return (
     <ModuleCard
       item={item}
@@ -309,8 +442,10 @@ export function DraggableCard({
       rect={rect}
       onHide={onHide}
       dragHandlers={dragHandlers}
-      resizeHandlers={resizeResponder?.panHandlers}
+      resizeHandlers={resizeHandlers}
       animated={{ translateX, translateY, width, height }}
+      active={active}
+      glow={glow}
     >
       {children}
     </ModuleCard>

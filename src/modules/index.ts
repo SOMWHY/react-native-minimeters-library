@@ -9,6 +9,7 @@ export {
   toEnvelopeColumns,
   toMeterScale,
   toStereoPoints,
+  resolveChannelIndex,
   toTraceSamples,
   type MeterRowBounds,
   type MeterRowOptions,
@@ -17,6 +18,7 @@ export {
 export { resolvePcmState } from './pcm';
 
 export {
+  findTriggerIndex,
   OscilloscopeModule,
   resolveOscilloscopeState,
   type OscilloscopeModuleProps,
