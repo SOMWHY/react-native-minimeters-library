@@ -1,13 +1,37 @@
 {
   "name": "@minimetermobile/ui",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Reusable MiniMeters-style React Native visualization components.",
+  "license": "MIT",
+  "author": "SOMWHY",
+  "homepage": "https://github.com/SOMWHY/react-native-minimeters-library#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SOMWHY/react-native-minimeters-library.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SOMWHY/react-native-minimeters-library/issues"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "skia",
+    "audio",
+    "visualizer",
+    "spectrum",
+    "spectrogram",
+    "waveform",
+    "vu-meter"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "workspaces": [
     "example"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "react-native": "src/index.ts",
+  "react-native": "dist/index.js",
   "files": [
     "dist",
     "src",
@@ -23,11 +47,11 @@
     "prepare": "npm run build"
   },
   "peerDependencies": {
-    "@shopify/react-native-skia": "2.14.0",
-    "react": "19.3.0",
-    "react-native": "0.88.1",
-    "react-native-reanimated": "4.7.1",
-    "react-native-gesture-handler": "~3.3.0",
+    "@shopify/react-native-skia": ">=2.14.0",
+    "react": ">=19.0.0",
+    "react-native": ">=0.88.1",
+    "react-native-gesture-handler": ">=3.3.0",
+    "react-native-reanimated": ">=4.7.1",
     "react-native-worklets": ">=0.7.0"
   },
   "devDependencies": {
