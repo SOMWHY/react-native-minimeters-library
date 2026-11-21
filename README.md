@@ -1,3 +1,5 @@
+**English** · [简体中文](README.zh-CN.md)
+
 # @minimetermobile/ui
 
 Props-driven React Native rendering components for MiniMeters Mobile.
@@ -273,3 +275,8 @@ npm run start:ui-storybook
 
 The Expo example consumes this package through a local `file:..` dependency and
 hosts the on-device Storybook preview of the canvas foundation.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). The two rules that break things fastest: no second Skia
+`Canvas`, and no new runtime dependency (Skia and friends are peers from the host's Expo SDK).

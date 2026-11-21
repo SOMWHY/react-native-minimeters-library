@@ -1,3 +1,5 @@
+**English** · [简体中文](data-contract.zh-CN.md)
+
 # Audio Data Contract
 
 This document records what the current server sends and what the current mobile
@@ -20,11 +22,16 @@ repository:
 ## Transport and frame cadence
 
 After WebSocket authentication, the server sends binary frames. It does not send
-audio as JSON. The broadcaster targets one frame every 33 ms (about 30 Hz), but
-the actual rate depends on audio-block production and network conditions. It
-selects the newest queued block, so intermediate queued blocks may be skipped.
-Each frame carries one DAW audio block; the 30 Hz delivery target is not the
-audio sample rate.
+audio as JSON. The broadcaster ticks every 10 ms and, on each tick, drains the
+queue and **coalesces every queued block into a single frame**, so one frame may
+carry several DAW blocks as consecutive samples. `samplesPerChannel` is the total
+for that frame and the timestamp is the newest block's. The delivery tick is not
+the audio sample rate.
+
+Sending one block per tick would deliver roughly a third of realtime, which is
+why the coalescing exists; a receiver must size its buffers from
+`samplesPerChannel` and never assume a frame equals one DAW block. See
+`MiniMetersMobileServer/protocol/audio_frame.md` for the current wording.
 
 The audio callback currently queues a zero timestamp. During serialization, the
 server substitutes the current Unix time in milliseconds. Therefore the
@@ -44,7 +51,7 @@ All integer header fields are little-endian. The header is 32 bytes:
 | 8 | 8 | `timestamp` | Unix epoch milliseconds, filled at send time |
 | 16 | 4 | `sampleRate` | Audio sample rate in Hz |
 | 20 | 2 | `channels` | The current processor writes `2` |
-| 22 | 2 | `samplesPerChannel` | Number of samples in this DAW block per channel |
+| 22 | 2 | `samplesPerChannel` | Samples in this frame per channel (may span several DAW blocks) |
 | 24 | 4 | `sampleFormat` | `1` = little-endian IEEE-754 `float32` |
 | 28 | 4 | `payloadSize` | PCM payload length in bytes |
 
