@@ -2,6 +2,9 @@
 
 # @minimetermobile/ui
 
+[![npm version](https://img.shields.io/npm/v/@minimetermobile/ui.svg)](https://www.npmjs.com/package/@minimetermobile/ui)
+[![license](https://img.shields.io/npm/l/@minimetermobile/ui.svg)](LICENSE)
+
 Props-driven React Native rendering components for MiniMeters Mobile.
 
 This package is the UI layer only. It does not open a WebSocket, parse audio
@@ -9,6 +12,17 @@ protocol frames, calculate audio metrics, manage routes, or persist dashboard
 state. It renders the visualization modules (waveform, oscilloscope,
 vectorscope, spectrum, VU, loudness, spectrogram) and the Skia foundation they
 share; the host application remains the owner of audio analysis.
+
+## Installation
+
+```sh
+npm install @minimetermobile/ui
+```
+
+Published to npm as
+[`@minimetermobile/ui`](https://www.npmjs.com/package/@minimetermobile/ui). Install the peer
+dependencies through your Expo SDK: Skia and Worklets must match the host build, not this
+package.
 
 ## Visual direction
 
