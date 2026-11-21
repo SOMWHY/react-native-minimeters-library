@@ -2,11 +2,23 @@
 
 # @minimetermobile/ui
 
+[![npm 版本](https://img.shields.io/npm/v/@minimetermobile/ui.svg)](https://www.npmjs.com/package/@minimetermobile/ui)
+[![许可证](https://img.shields.io/npm/l/@minimetermobile/ui.svg)](LICENSE)
+
 面向 MiniMeters Mobile 的、由 props 驱动的 React Native 渲染组件。
 
 本包只负责 UI 层。它不建立 WebSocket、不解析音频协议帧、不计算音频指标、不做路由，也不持久化仪表盘
 状态。它渲染可视化模块（波形、示波器、矢量示波器、频谱、VU、响度、声谱）以及它们共用的 Skia 基础层；
 音频分析始终归宿主应用所有。
+
+## 安装
+
+```sh
+npm install @minimetermobile/ui
+```
+
+已发布到 npm：[`@minimetermobile/ui`](https://www.npmjs.com/package/@minimetermobile/ui)。
+对等依赖请通过你自己的 Expo SDK 安装 —— Skia 与 Worklets 必须与宿主构建一致，不能由本包提供。
 
 ## 视觉方向
 
